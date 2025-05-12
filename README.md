@@ -1,73 +1,68 @@
-# Welcome to your Lovable project
 
-## Project info
+# Confidence Challenge Game
 
-**URL**: https://lovable.dev/projects/12ea7ab5-487d-4b17-8466-830c53da022e
+An educational game for elementary school children to understand protein structure prediction confidence concepts.
 
-## How can I edit this code?
+## Project Overview
 
-There are several ways of editing your application.
+This game helps children understand PAE (Predicted Aligned Error) Viewer concepts for protein structure prediction confidence through interactive challenges.
 
-**Use Lovable**
+Features:
+- 5x5 grid representing a simplified PAE map with color-coded confidence levels
+- Simplified 3D protein representation
+- Interactive connection between the PAE map and protein visualization
+- Question/challenge area with dynamic questions about protein confidence
+- Scoring system
+- Integration with Gemini AI for question generation
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/12ea7ab5-487d-4b17-8466-830c53da022e) and start prompting.
+## Setup Instructions
 
-Changes made via Lovable will be committed automatically to this repo.
+### Frontend
 
-**Use your preferred IDE**
+1. Install dependencies:
+   ```
+   npm install
+   ```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. Create a `.env.local` file with your Gemini API Key:
+   ```
+   GEMINI_API_KEY=your_gemini_api_key_here
+   VITE_BACKEND_URL=http://localhost:5000
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+3. Start the development server:
+   ```
+   npm run dev
+   ```
 
-Follow these steps:
+### Backend
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. Navigate to the backend folder:
+   ```
+   cd backend
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Install Python dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. Start the Flask server:
+   ```
+   python app.py
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## How to Play
 
-**Edit a file directly in GitHub**
+1. View the PAE map grid and protein visualization
+2. Click on a cell in the PAE map to select it
+3. Answer the generated question about protein confidence
+4. Track your score and try to improve your knowledge
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Technologies Used
 
-**Use GitHub Codespaces**
+- React with TypeScript
+- Tailwind CSS for styling
+- Flask backend
+- Gemini AI API for question generation
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/12ea7ab5-487d-4b17-8466-830c53da022e) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)

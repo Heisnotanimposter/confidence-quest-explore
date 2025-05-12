@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Adding custom game colors
+				game: {
+					'high': '#4ade80',    // Bright green for high confidence
+					'medium': '#fcd34d',  // Yellow for medium confidence
+					'low': '#f87171',     // Red for low confidence
+					'highlight': '#60a5fa', // Blue for highlighting
+					'background': '#f8fafc' // Light background
 				}
 			},
 			borderRadius: {
@@ -84,11 +93,16 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-highlight': {
+					'0%, 100%': { transform: 'scale(1)' },
+					'50%': { transform: 'scale(1.05)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-highlight': 'pulse-highlight 1s ease-in-out infinite'
 			}
 		}
 	},

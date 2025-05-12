@@ -1,11 +1,25 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState, useEffect } from "react";
+import ConfidenceGame from "@/components/game/ConfidenceGame";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-game-background p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">Confidence Challenge</h1>
+          <p className="text-lg text-gray-700">
+            Learn about protein structure prediction confidence!
+          </p>
+        </header>
+        
+        <main>
+          <ConfidenceGame />
+        </main>
+        
+        <footer className="mt-12 text-center text-sm text-gray-500">
+          <p>Educational game for understanding PAE Viewer concepts</p>
+        </footer>
       </div>
     </div>
   );
