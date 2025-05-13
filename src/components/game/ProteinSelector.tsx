@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getAvailableProteins } from "@/services/proteinDataService";
-import { PaeMapType } from "@/types/protein";
+import { PaeMapType } from "@/services/proteinDataService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ProteinSelectorProps {

@@ -1,9 +1,7 @@
 
 import { useState } from "react";
 import { PaeCell, ConfidenceLevel } from "@/types/game";
-import { generatePaeGrid } from "@/utils/paeUtils";
-import { PaeMapType } from "@/types/protein";
-import { getProteinById } from "@/services/proteinDataService";
+import { generatePaeGrid, PaeMapType, getProteinById } from "@/services/proteinDataService";
 import { generateQuestion } from "@/services/apiClient";
 import { toast } from "sonner";
 import { DifficultyLevel, GameMode, AudienceType } from "@/components/game/GameSettingsContext";
