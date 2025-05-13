@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DifficultyLevel, GameMode } from "./GameSettingsContext";
@@ -158,7 +157,7 @@ const QuestionArea = ({
                       value={option} 
                       id={`option-${index}`}
                       checked={selectedAnswer === option}
-                      onCheckedChange={() => handleRadioChange(option)}
+                      onChange={() => handleRadioChange(option)}
                     />
                     <span className="text-base">{option}</span>
                   </label>
