@@ -1,4 +1,6 @@
 
+import { DifficultyLevel, GameMode, AudienceType } from "@/components/game/GameSettingsContext";
+
 /**
  * API Client for connecting to the backend Gemini service
  */
@@ -17,12 +19,18 @@ interface QuestionResponse {
  * @param confidence - The confidence level of the selected cell
  * @param row - The row index of the selected cell
  * @param col - The column index of the selected cell
+ * @param difficulty - The current difficulty level
+ * @param audience - The target audience
+ * @param gameMode - The current game mode
  * @returns A promise that resolves to a question response
  */
 export const generateQuestion = async (
   confidence: string,
   row: number,
-  col: number
+  col: number,
+  difficulty: DifficultyLevel = 'beginner',
+  audience: AudienceType = 'elementary',
+  gameMode: GameMode = 'challenge'
 ): Promise<QuestionResponse> => {
   try {
     const response = await fetch(`${BACKEND_URL}/api/generate-question`, {
@@ -34,6 +42,9 @@ export const generateQuestion = async (
         confidence,
         row,
         col,
+        difficulty,
+        audience,
+        gameMode
       }),
     });
 
@@ -46,12 +57,42 @@ export const generateQuestion = async (
     console.error('Error calling the question generation API:', error);
     
     // Return a fallback question if the API call fails
-    return {
-      question: `How confident are we about this part of the protein?`,
-      options: ["Very confident", "Somewhat confident", "Not confident"],
-      correctAnswer: confidence === "high" ? "Very confident" : 
-                    confidence === "medium" ? "Somewhat confident" : 
-                    "Not confident"
-    };
+    // Adjust complexity based on difficulty
+    if (difficulty === 'advanced') {
+      return {
+        question: `What can we infer about the protein structure based on this ${confidence} confidence region?`,
+        options: confidence === "high" 
+          ? ["This region is likely well-structured and correctly predicted", "This region may contain prediction errors", "This region is likely disordered"] 
+          : confidence === "medium" 
+          ? ["This region may have some flexibility", "This region is likely rigid", "This region is completely disordered"] 
+          : ["This region may contain prediction errors", "This region is well-predicted", "This region likely needs additional sampling"],
+        correctAnswer: confidence === "high" 
+          ? "This region is likely well-structured and correctly predicted" 
+          : confidence === "medium" 
+          ? "This region may have some flexibility" 
+          : "This region may contain prediction errors"
+      };
+    } else if (difficulty === 'intermediate') {
+      return {
+        question: `What does this ${confidence} confidence value tell us?`,
+        options: ["High certainty in the prediction", "Medium certainty in the prediction", "Low certainty in the prediction"],
+        correctAnswer: confidence === "high" 
+          ? "High certainty in the prediction" 
+          : confidence === "medium" 
+          ? "Medium certainty in the prediction" 
+          : "Low certainty in the prediction"
+      };
+    } else {
+      // Beginner
+      return {
+        question: `How confident are we about this part of the protein?`,
+        options: ["Very confident", "Somewhat confident", "Not confident"],
+        correctAnswer: confidence === "high" 
+          ? "Very confident" 
+          : confidence === "medium" 
+          ? "Somewhat confident" 
+          : "Not confident"
+      };
+    }
   }
 };

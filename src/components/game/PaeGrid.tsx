@@ -10,7 +10,12 @@ interface PaeGridProps {
 const PaeGrid = ({ grid, onCellClick, selectedCell }: PaeGridProps) => {
   // Function to get the CSS class for a cell based on its confidence level
   const getCellClass = (cell: PaeCell) => {
-    let baseClass = "w-12 h-12 md:w-16 md:h-16 border border-gray-300 transition-all duration-300 cursor-pointer hover:opacity-80";
+    // Determine cell size based on grid size
+    const cellSizeClass = grid.length <= 5 
+      ? "w-12 h-12 md:w-16 md:h-16" 
+      : "w-8 h-8 md:w-12 md:h-12";
+    
+    let baseClass = `${cellSizeClass} border border-gray-300 transition-all duration-300 cursor-pointer hover:opacity-80`;
     
     // Add confidence level color
     if (cell.confidence === "high") {
@@ -48,6 +53,11 @@ const PaeGrid = ({ grid, onCellClick, selectedCell }: PaeGridProps) => {
                       title={`Confidence: ${cell.confidence}`}
                     >
                       {/* Cell content could go here if needed */}
+                      {grid.length > 5 && (
+                        <span className="text-xs text-white font-bold opacity-70">
+                          {rowIndex + 1},{colIndex + 1}
+                        </span>
+                      )}
                     </div>
                   </td>
                 ))}

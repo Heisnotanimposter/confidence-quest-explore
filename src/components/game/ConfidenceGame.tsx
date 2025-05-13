@@ -1,8 +1,12 @@
+
 import { useState, useEffect } from "react";
 import PaeGrid from "./PaeGrid";
 import ProteinModel from "./ProteinModel";
 import QuestionArea from "./QuestionArea";
 import ScoreBoard from "./ScoreBoard";
+import GameSettings from "./GameSettings";
+import { useGameSettings } from "./GameSettingsContext";
+import { generateQuestion } from "@/services/apiClient";
 import { toast } from "sonner";
 
 // Define confidence level type
@@ -17,7 +21,9 @@ export interface PaeCell {
 
 // Main game component
 const ConfidenceGame = () => {
-  // State for the 5x5 PAE grid
+  const { difficulty, gameMode, audience, gridSize } = useGameSettings();
+  
+  // State for the PAE grid
   const [paeGrid, setPaeGrid] = useState<PaeCell[][]>([]);
   // State for the selected cell
   const [selectedCell, setSelectedCell] = useState<PaeCell | null>(null);
@@ -37,7 +43,7 @@ const ConfidenceGame = () => {
   // Initialize the grid with random confidence levels
   useEffect(() => {
     initializeGrid();
-  }, []);
+  }, [gridSize]); // Reinitialize when grid size changes
 
   // Function to initialize the grid with random confidence levels
   const initializeGrid = () => {
@@ -52,20 +58,33 @@ const ConfidenceGame = () => {
     };
     
     // Target counts for balanced distribution
-    const targetCount = Math.floor((5 * 5) / 3); // ~8-9 of each type
+    const targetCount = Math.floor((gridSize * gridSize) / 3);
     
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < gridSize; i++) {
       const row: PaeCell[] = [];
-      for (let j = 0; j < 5; j++) {
+      for (let j = 0; j < gridSize; j++) {
         // Select a confidence level that hasn't exceeded its target count
-        let availableLevels = confidenceLevels.filter(
-          level => countMap[level] < targetCount
-        );
+        // For advanced difficulty, make the patterns more complex
+        let availableLevels = confidenceLevels;
         
-        // If all have met targets, allow any
-        if (availableLevels.length === 0) {
-          availableLevels = confidenceLevels;
+        if (difficulty === "beginner") {
+          // In beginner mode, make clear patterns - rows tend to have similar confidence
+          if (i % 3 === 0) availableLevels = ["high"];
+          else if (i % 3 === 1) availableLevels = ["medium"];
+          else availableLevels = ["low"];
+        } 
+        else if (difficulty === "intermediate") {
+          // In intermediate, ensure balanced distribution
+          availableLevels = confidenceLevels.filter(
+            level => countMap[level] < targetCount
+          );
+          
+          // If all have met targets, allow any
+          if (availableLevels.length === 0) {
+            availableLevels = confidenceLevels;
+          }
         }
+        // For advanced, use the random distribution
         
         // Randomly select from available levels
         const randomIndex = Math.floor(Math.random() * availableLevels.length);
@@ -92,64 +111,67 @@ const ConfidenceGame = () => {
     setIsLoading(true);
     
     try {
-      // Generate a question based on the selected cell
-      const questionData = await generateQuestion(cell);
+      // Generate a question based on the selected cell and current settings
+      const questionData = await generateQuestion(
+        cell.confidence,
+        cell.row,
+        cell.col,
+        difficulty,
+        audience,
+        gameMode
+      );
+      
       setCurrentQuestion(questionData.question);
       setOptions(questionData.options);
       setCorrectAnswer(questionData.correctAnswer);
     } catch (error) {
       console.error("Failed to generate question:", error);
       toast.error("Failed to generate a question. Please try again.");
-      // Fallback to a default question
-      setCurrentQuestion("How confident are we about this part of the protein?");
       
-      if (cell.confidence === "high") {
-        setOptions(["Very confident", "Somewhat confident", "Not confident"]);
-        setCorrectAnswer("Very confident");
-      } else if (cell.confidence === "medium") {
-        setOptions(["Very confident", "Somewhat confident", "Not confident"]);
-        setCorrectAnswer("Somewhat confident");
+      // Fallback to a default question based on difficulty
+      if (difficulty === "beginner") {
+        setCurrentQuestion("How confident are we about this part of the protein?");
+        
+        if (cell.confidence === "high") {
+          setOptions(["Very confident", "Not confident"]);
+          setCorrectAnswer("Very confident");
+        } else if (cell.confidence === "medium") {
+          setOptions(["Somewhat confident", "Not confident"]);
+          setCorrectAnswer("Somewhat confident");
+        } else {
+          setOptions(["Very confident", "Not confident"]);
+          setCorrectAnswer("Not confident");
+        }
       } else {
-        setOptions(["Very confident", "Somewhat confident", "Not confident"]);
-        setCorrectAnswer("Not confident");
+        // More complex questions for higher difficulties
+        setCurrentQuestion("What does this part of the PAE map tell us about the protein structure?");
+        
+        if (cell.confidence === "high") {
+          setOptions([
+            "This region is well-predicted",
+            "This region has high uncertainty",
+            "This region may have errors"
+          ]);
+          setCorrectAnswer("This region is well-predicted");
+        } else if (cell.confidence === "medium") {
+          setOptions([
+            "This region is somewhat flexible",
+            "This region is completely disordered",
+            "This region is rigid"
+          ]);
+          setCorrectAnswer("This region is somewhat flexible");
+        } else {
+          setOptions([
+            "This region has high uncertainty",
+            "This region is well-predicted",
+            "This region is rigid"
+          ]);
+          setCorrectAnswer("This region has high uncertainty");
+        }
       }
     }
     
     setIsLoading(false);
-  };
-
-  // Generate a question based on the selected cell
-  const generateQuestion = async (cell: PaeCell): Promise<{
-    question: string;
-    options: string[];
-    correctAnswer: string;
-  }> => {
-    // In a real implementation, this would call the Gemini API
-    // For now, we'll simulate with predefined questions based on confidence level
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Generate question based on confidence level
-    if (cell.confidence === "high") {
-      return {
-        question: "Is this part of the protein structure very reliable?",
-        options: ["Yes", "No"],
-        correctAnswer: "Yes"
-      };
-    } else if (cell.confidence === "medium") {
-      return {
-        question: "How much might this part of the protein move?",
-        options: ["Not at all", "A little", "A lot"],
-        correctAnswer: "A little"
-      };
-    } else {
-      return {
-        question: "Do we have enough information about this region?",
-        options: ["Yes", "No"],
-        correctAnswer: "No"
-      };
-    }
   };
 
   // Handle answer selection
@@ -159,9 +181,11 @@ const ConfidenceGame = () => {
     
     // Check if the answer is correct
     if (answer === correctAnswer) {
-      // Increase score
-      setScore(score + 1);
-      toast.success("Correct answer! 🎉");
+      // Increase score - award more points for harder difficulties
+      const pointsMultiplier = difficulty === 'advanced' ? 3 : 
+                              difficulty === 'intermediate' ? 2 : 1;
+      setScore(score + pointsMultiplier);
+      toast.success(`Correct answer! +${pointsMultiplier} points 🎉`);
     } else {
       toast.error(`Incorrect. The correct answer is: ${correctAnswer}`);
     }
@@ -185,8 +209,31 @@ const ConfidenceGame = () => {
     toast.info("Game reset! Try to beat your previous score!");
   };
 
+  // Render tutorial info if in tutorial mode
+  const renderTutorialInfo = () => {
+    if (gameMode === 'tutorial') {
+      return (
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h3 className="font-bold text-lg mb-2">Tutorial Mode</h3>
+          <p className="mb-2">Welcome to the Confidence Challenge tutorial!</p>
+          <ol className="list-decimal pl-5 space-y-2">
+            <li>Click on any colored cell in the PAE map on the left.</li>
+            <li>Notice how the corresponding part of the protein model highlights.</li>
+            <li>Answer the question about protein confidence that appears below.</li>
+            <li>Green cells indicate high confidence, yellow is medium, and red is low.</li>
+          </ol>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="flex flex-col gap-8">
+      <GameSettings />
+      
+      {renderTutorialInfo()}
+      
       <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
         <div className="w-full md:w-1/2">
           <h2 className="text-xl font-bold mb-3 text-center">PAE Map</h2>
@@ -204,9 +251,16 @@ const ConfidenceGame = () => {
         options={options}
         onAnswerSelect={handleAnswerSelect}
         isLoading={isLoading}
+        difficulty={difficulty}
+        gameMode={gameMode}
       />
       
-      <ScoreBoard score={score} attempts={attempts} onReset={handleReset} />
+      <ScoreBoard 
+        score={score} 
+        attempts={attempts} 
+        onReset={handleReset} 
+        difficulty={difficulty} 
+      />
     </div>
   );
 };

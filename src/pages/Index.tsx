@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import ConfidenceGame from "@/components/game/ConfidenceGame";
+import { GameSettingsProvider } from "@/components/game/GameSettingsContext";
 
 const Index = () => {
   return (
@@ -14,7 +15,9 @@ const Index = () => {
         </header>
         
         <main>
-          <ConfidenceGame />
+          <GameSettingsProvider>
+            <ConfidenceGame />
+          </GameSettingsProvider>
         </main>
         
         <footer className="mt-12 text-center text-sm text-gray-500">

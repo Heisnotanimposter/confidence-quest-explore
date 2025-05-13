@@ -26,7 +26,7 @@ model = genai.GenerativeModel('gemini-1.5-pro')
 @app.route('/api/generate-question', methods=['POST'])
 def generate_question():
     """
-    Generate a question about protein confidence based on the selected cell
+    Generate a question about protein confidence based on the selected cell and game settings
     """
     try:
         # Get data from request
@@ -34,14 +34,35 @@ def generate_question():
         confidence_level = data.get('confidence', 'medium')
         row = data.get('row', 0)
         col = data.get('col', 0)
+        difficulty = data.get('difficulty', 'beginner')
+        audience = data.get('audience', 'elementary')
+        game_mode = data.get('gameMode', 'challenge')
         
-        # Create prompt for Gemini
+        # Create prompt for Gemini based on settings
         prompt = f"""
-        Generate a simple educational question about protein structure prediction confidence.
-        The question should be suitable for elementary school children.
+        Generate an educational question about protein structure prediction confidence.
         
-        The confidence level for the selected part is: {confidence_level} (high, medium, or low).
-        This corresponds to position [{row}, {col}] in the PAE map.
+        Settings:
+        - Difficulty level: {difficulty} (beginner, intermediate, or advanced)
+        - Target audience: {audience} (elementary, highSchool, or undergraduate)
+        - Game mode: {game_mode} (tutorial, challenge, or explore)
+        - The confidence level for the selected part is: {confidence_level} (high, medium, or low)
+        - This corresponds to position [{row}, {col}] in the PAE map
+        
+        Guidelines based on difficulty:
+        - For beginner: Very simple questions with straightforward answers, focus on basic understanding
+        - For intermediate: More nuanced questions, introduce some protein structure concepts
+        - For advanced: Complex questions that explore uncertainty in predictions, domain interactions, etc.
+        
+        Guidelines based on audience:
+        - For elementary: Use simple language, avoid technical terms, focus on intuitive understanding
+        - For highSchool: Can use some technical terms with explanations
+        - For undergraduate: Can use appropriate technical language for biology/biochemistry students
+        
+        Guidelines based on game mode:
+        - For tutorial: Include some educational content in the question itself
+        - For challenge: Focus on testing knowledge
+        - For explore: Focus on interesting facts and insights about protein structure prediction
         
         Return the response in this JSON format:
         {{
@@ -50,9 +71,8 @@ def generate_question():
             "correctAnswer": "The correct option here"
         }}
         
-        Keep the questions simple and educational. The options should include the correct answer
-        and 1-2 incorrect answers. The question should relate to protein confidence in a way
-        children can understand.
+        The options should include the correct answer and 1-3 incorrect answers, depending on difficulty.
+        For beginner, limit to 2 options. For intermediate, use 2-3 options. For advanced, use 3-4 options.
         """
         
         # Generate response from Gemini
@@ -63,14 +83,35 @@ def generate_question():
     
     except Exception as e:
         print(f"Error: {str(e)}")
-        # Fallback response
-        fallback_response = {
-            "question": f"How confident are we about this part of the protein?",
-            "options": ["Very confident", "Somewhat confident", "Not confident"],
-            "correctAnswer": "Very confident" if confidence_level == "high" else 
-                            "Somewhat confident" if confidence_level == "medium" else 
-                            "Not confident"
-        }
+        # Fallback response based on difficulty
+        if difficulty == 'advanced':
+            fallback_response = {
+                "question": f"What can we infer about the protein structure based on this {confidence_level} confidence region?",
+                "options": ["This region is likely well-structured and correctly predicted", 
+                           "This region may contain prediction errors", 
+                           "This region is likely disordered"],
+                "correctAnswer": "This region is likely well-structured and correctly predicted" if confidence_level == "high" else 
+                                "This region may have some flexibility" if confidence_level == "medium" else 
+                                "This region may contain prediction errors"
+            }
+        elif difficulty == 'intermediate':
+            fallback_response = {
+                "question": f"What does this {confidence_level} confidence value tell us?",
+                "options": ["High certainty in the prediction", 
+                           "Medium certainty in the prediction", 
+                           "Low certainty in the prediction"],
+                "correctAnswer": "High certainty in the prediction" if confidence_level == "high" else 
+                                "Medium certainty in the prediction" if confidence_level == "medium" else 
+                                "Low certainty in the prediction"
+            }
+        else:  # beginner
+            fallback_response = {
+                "question": f"How confident are we about this part of the protein?",
+                "options": ["Very confident", "Somewhat confident", "Not confident"],
+                "correctAnswer": "Very confident" if confidence_level == "high" else 
+                                "Somewhat confident" if confidence_level == "medium" else 
+                                "Not confident"
+            }
         return jsonify(fallback_response)
 
 if __name__ == '__main__':
