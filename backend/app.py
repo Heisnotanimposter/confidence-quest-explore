@@ -38,7 +38,12 @@ def generate_question():
         audience = data.get('audience', 'elementary')
         game_mode = data.get('gameMode', 'challenge')
         
-        # Create prompt for Gemini based on settings
+        # Get protein information if provided
+        protein_name = data.get('proteinName', '')
+        protein_function = data.get('proteinFunction', '')
+        map_type = data.get('mapType', 'full')
+        
+        # Create prompt for Gemini based on settings and protein info
         prompt = f"""
         Generate an educational question about protein structure prediction confidence.
         
@@ -48,6 +53,11 @@ def generate_question():
         - Game mode: {game_mode} (tutorial, challenge, or explore)
         - The confidence level for the selected part is: {confidence_level} (high, medium, or low)
         - This corresponds to position [{row}, {col}] in the PAE map
+        
+        {f"Protein-specific context:" if protein_name else ""}
+        {f"- Protein name: {protein_name}" if protein_name else ""}
+        {f"- Protein function: {protein_function}" if protein_function else ""}
+        {f"- PAE map type: {map_type} (full protein, domain-specific, or subunit interface)" if map_type else ""}
         
         Guidelines based on difficulty:
         - For beginner: Very simple questions with straightforward answers, focus on basic understanding
@@ -73,6 +83,9 @@ def generate_question():
         
         The options should include the correct answer and 1-3 incorrect answers, depending on difficulty.
         For beginner, limit to 2 options. For intermediate, use 2-3 options. For advanced, use 3-4 options.
+        
+        If this is a real protein (e.g., {protein_name}), include that context in the question and make it
+        relevant to the protein's structure and function when appropriate.
         """
         
         # Generate response from Gemini

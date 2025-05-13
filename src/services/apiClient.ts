@@ -1,5 +1,6 @@
 
 import { DifficultyLevel, GameMode, AudienceType } from "@/components/game/GameSettingsContext";
+import { PaeMapType } from "./proteinDataService";
 
 /**
  * API Client for connecting to the backend Gemini service
@@ -14,6 +15,18 @@ interface QuestionResponse {
   correctAnswer: string;
 }
 
+interface QuestionParams {
+  confidence: string;
+  row: number;
+  col: number;
+  difficulty?: DifficultyLevel;
+  audience?: AudienceType;
+  gameMode?: GameMode;
+  proteinName?: string;
+  proteinFunction?: string;
+  mapType?: PaeMapType;
+}
+
 /**
  * Generate a question using the Gemini API based on the selected cell
  * @param confidence - The confidence level of the selected cell
@@ -22,16 +35,22 @@ interface QuestionResponse {
  * @param difficulty - The current difficulty level
  * @param audience - The target audience
  * @param gameMode - The current game mode
+ * @param proteinName - Optional protein name for context
+ * @param proteinFunction - Optional protein function for context
+ * @param mapType - Optional PAE map type
  * @returns A promise that resolves to a question response
  */
-export const generateQuestion = async (
-  confidence: string,
-  row: number,
-  col: number,
-  difficulty: DifficultyLevel = 'beginner',
-  audience: AudienceType = 'elementary',
-  gameMode: GameMode = 'challenge'
-): Promise<QuestionResponse> => {
+export const generateQuestion = async ({
+  confidence,
+  row,
+  col,
+  difficulty = 'beginner',
+  audience = 'elementary',
+  gameMode = 'challenge',
+  proteinName = '',
+  proteinFunction = '',
+  mapType = 'full'
+}: QuestionParams): Promise<QuestionResponse> => {
   try {
     const response = await fetch(`${BACKEND_URL}/api/generate-question`, {
       method: 'POST',
@@ -44,7 +63,10 @@ export const generateQuestion = async (
         col,
         difficulty,
         audience,
-        gameMode
+        gameMode,
+        proteinName,
+        proteinFunction,
+        mapType
       }),
     });
 
@@ -95,4 +117,23 @@ export const generateQuestion = async (
       };
     }
   }
+};
+
+// Overload generateQuestion for backward compatibility
+export const generateQuestion = async (
+  confidence: string,
+  row: number,
+  col: number,
+  difficulty: DifficultyLevel = 'beginner',
+  audience: AudienceType = 'elementary',
+  gameMode: GameMode = 'challenge'
+): Promise<QuestionResponse> => {
+  return generateQuestion({
+    confidence,
+    row, 
+    col,
+    difficulty,
+    audience,
+    gameMode
+  });
 };

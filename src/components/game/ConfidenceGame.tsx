@@ -5,8 +5,11 @@ import ProteinModel from "./ProteinModel";
 import QuestionArea from "./QuestionArea";
 import ScoreBoard from "./ScoreBoard";
 import GameSettings from "./GameSettings";
+import ProteinSelector from "./ProteinSelector";
+import ProteinInfo from "./ProteinInfo";
 import { useGameSettings } from "./GameSettingsContext";
 import { generateQuestion } from "@/services/apiClient";
+import { generatePaeGrid, PaeMapType, getProteinById } from "@/services/proteinDataService";
 import { toast } from "sonner";
 
 // Define confidence level type
@@ -39,70 +42,24 @@ const ConfidenceGame = () => {
   const [options, setOptions] = useState<string[]>([]);
   // State for the correct answer
   const [correctAnswer, setCorrectAnswer] = useState("");
+  // State for selected protein
+  const [selectedProtein, setSelectedProtein] = useState("p1");
+  // State for selected map type
+  const [selectedMapType, setSelectedMapType] = useState<PaeMapType>("full");
+  // State for protein data
+  const [proteinData, setProteinData] = useState(getProteinById("p1"));
 
-  // Initialize the grid with random confidence levels
+  // Initialize the grid with real protein data
   useEffect(() => {
-    initializeGrid();
-  }, [gridSize]); // Reinitialize when grid size changes
+    generateProteinGrid();
+  }, [selectedProtein, selectedMapType, gridSize]);
 
-  // Function to initialize the grid with random confidence levels
-  const initializeGrid = () => {
-    const newGrid: PaeCell[][] = [];
-    const confidenceLevels: ConfidenceLevel[] = ["high", "medium", "low"];
-    
-    // Keep track of how many of each confidence level we've used
-    const countMap: Record<ConfidenceLevel, number> = {
-      high: 0,
-      medium: 0,
-      low: 0
-    };
-    
-    // Target counts for balanced distribution
-    const targetCount = Math.floor((gridSize * gridSize) / 3);
-    
-    for (let i = 0; i < gridSize; i++) {
-      const row: PaeCell[] = [];
-      for (let j = 0; j < gridSize; j++) {
-        // Select a confidence level that hasn't exceeded its target count
-        // For advanced difficulty, make the patterns more complex
-        let availableLevels = confidenceLevels;
-        
-        if (difficulty === "beginner") {
-          // In beginner mode, make clear patterns - rows tend to have similar confidence
-          if (i % 3 === 0) availableLevels = ["high"];
-          else if (i % 3 === 1) availableLevels = ["medium"];
-          else availableLevels = ["low"];
-        } 
-        else if (difficulty === "intermediate") {
-          // In intermediate, ensure balanced distribution
-          availableLevels = confidenceLevels.filter(
-            level => countMap[level] < targetCount
-          );
-          
-          // If all have met targets, allow any
-          if (availableLevels.length === 0) {
-            availableLevels = confidenceLevels;
-          }
-        }
-        // For advanced, use the random distribution
-        
-        // Randomly select from available levels
-        const randomIndex = Math.floor(Math.random() * availableLevels.length);
-        const confidence = availableLevels[randomIndex];
-        
-        // Update count
-        countMap[confidence]++;
-        
-        row.push({
-          row: i,
-          col: j,
-          confidence
-        });
-      }
-      newGrid.push(row);
-    }
-    
-    setPaeGrid(newGrid);
+  // Function to generate grid based on selected protein
+  const generateProteinGrid = () => {
+    const { grid, proteinData } = generatePaeGrid(selectedProtein, selectedMapType, gridSize);
+    setPaeGrid(grid);
+    setProteinData(proteinData);
+    setSelectedCell(null);
   };
 
   // Handle cell click in the PAE grid
@@ -200,13 +157,23 @@ const ConfidenceGame = () => {
 
   // Reset the game
   const handleReset = () => {
-    initializeGrid();
+    generateProteinGrid();
     setSelectedCell(null);
     setScore(0);
     setAttempts(0);
     setCurrentQuestion("");
     setOptions([]);
     toast.info("Game reset! Try to beat your previous score!");
+  };
+
+  // Handle protein selection
+  const handleProteinSelect = (proteinId: string) => {
+    setSelectedProtein(proteinId);
+  };
+
+  // Handle PAE map type selection
+  const handleMapTypeSelect = (mapType: PaeMapType) => {
+    setSelectedMapType(mapType);
   };
 
   // Render tutorial info if in tutorial mode
@@ -234,33 +201,56 @@ const ConfidenceGame = () => {
       
       {renderTutorialInfo()}
       
-      <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
-        <div className="w-full md:w-1/2">
-          <h2 className="text-xl font-bold mb-3 text-center">PAE Map</h2>
-          <PaeGrid grid={paeGrid} onCellClick={handleCellClick} selectedCell={selectedCell} />
+      <ProteinSelector 
+        selectedProtein={selectedProtein}
+        onProteinSelect={handleProteinSelect}
+        selectedMapType={selectedMapType}
+        onMapTypeSelect={handleMapTypeSelect}
+      />
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-2">
+          <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+            <div className="w-full md:w-1/2">
+              <h2 className="text-xl font-bold mb-3 text-center">PAE Map</h2>
+              <PaeGrid grid={paeGrid} onCellClick={handleCellClick} selectedCell={selectedCell} />
+            </div>
+            
+            <div className="w-full md:w-1/2">
+              <h2 className="text-xl font-bold mb-3 text-center">Protein Model</h2>
+              <ProteinModel paeGrid={paeGrid} selectedCell={selectedCell} />
+            </div>
+          </div>
+          
+          <div className="mt-8">
+            <QuestionArea 
+              question={currentQuestion}
+              options={options}
+              onAnswerSelect={handleAnswerSelect}
+              isLoading={isLoading}
+              difficulty={difficulty}
+              gameMode={gameMode}
+            />
+            
+            <div className="mt-6">
+              <ScoreBoard 
+                score={score} 
+                attempts={attempts} 
+                onReset={handleReset} 
+                difficulty={difficulty} 
+              />
+            </div>
+          </div>
         </div>
         
-        <div className="w-full md:w-1/2">
-          <h2 className="text-xl font-bold mb-3 text-center">Protein Model</h2>
-          <ProteinModel paeGrid={paeGrid} selectedCell={selectedCell} />
+        <div className="bg-white p-4 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-3 text-center">Protein Information</h2>
+          <ProteinInfo 
+            protein={proteinData} 
+            audience={audience}
+          />
         </div>
       </div>
-      
-      <QuestionArea 
-        question={currentQuestion}
-        options={options}
-        onAnswerSelect={handleAnswerSelect}
-        isLoading={isLoading}
-        difficulty={difficulty}
-        gameMode={gameMode}
-      />
-      
-      <ScoreBoard 
-        score={score} 
-        attempts={attempts} 
-        onReset={handleReset} 
-        difficulty={difficulty} 
-      />
     </div>
   );
 };
