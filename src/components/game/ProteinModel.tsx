@@ -1,5 +1,5 @@
 
-import { PaeCell } from "./ConfidenceGame";
+import { PaeCell } from "@/types/game";
 
 interface ProteinModelProps {
   paeGrid: PaeCell[][];
