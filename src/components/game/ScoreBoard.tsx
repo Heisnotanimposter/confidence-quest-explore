@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { DifficultyLevel } from "./GameSettingsContext";
 import { Award } from "lucide-react";
@@ -11,8 +10,20 @@ interface ScoreBoardProps {
 }
 
 const ScoreBoard = ({ score, attempts, onReset, difficulty }: ScoreBoardProps) => {
-  // Calculate accuracy percentage
-  const accuracy = attempts > 0 ? Math.round((score / attempts) * 100) : 0;
+  // Calculate accuracy percentage based on difficulty multiplier
+  const getAccuracy = () => {
+    if (attempts === 0) return 0;
+    
+    // Get the points multiplier for the current difficulty
+    const multiplier = difficulty === 'advanced' ? 3 : 
+                      difficulty === 'intermediate' ? 2 : 1;
+    
+    // Calculate the maximum possible score for the number of attempts
+    const maxPossibleScore = attempts * multiplier;
+    
+    // Calculate accuracy as a percentage of the maximum possible score
+    return Math.round((score / maxPossibleScore) * 100);
+  };
   
   // Get points multiplier based on difficulty
   const getMultiplier = () => {
@@ -40,7 +51,7 @@ const ScoreBoard = ({ score, attempts, onReset, difficulty }: ScoreBoardProps) =
           
           <div className="text-center">
             <p className="text-sm font-medium text-gray-600">Accuracy</p>
-            <p className="text-3xl font-bold">{accuracy}%</p>
+            <p className="text-3xl font-bold">{getAccuracy()}%</p>
           </div>
           
           <div className="text-center flex items-center gap-1">
