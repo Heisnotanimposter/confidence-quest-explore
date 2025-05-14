@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DifficultyLevel, GameMode } from "./GameSettingsContext";
@@ -93,12 +92,12 @@ const QuestionArea = ({
             
             {renderHelp()}
             
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
+            <div className="flex flex-col gap-3 justify-center mt-4">
               {options.map((option, index) => (
                 <Button
                   key={index}
                   onClick={() => onAnswerSelect(option)}
-                  className="px-6 py-2 text-base"
+                  className="px-6 py-2 text-base w-full"
                   variant={difficulty === 'advanced' ? (index % 2 === 0 ? 'default' : 'outline') : 'default'}
                 >
                   {option}
