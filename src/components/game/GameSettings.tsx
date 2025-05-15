@@ -1,4 +1,3 @@
-
 import { useGameSettings } from './GameSettingsContext';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +18,7 @@ const GameSettings = () => {
   return (
     <Card className="mb-6">
       <CardHeader>
-        <h2 className="text-xl font-bold text-center">Game Settings</h2>
+        <h2 className="text-xl font-bold text-center">Settings</h2>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -66,19 +65,19 @@ const GameSettings = () => {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Users size={18} />
-              <label className="text-sm font-medium">Audience</label>
+              <label className="text-sm font-medium">Level</label>
             </div>
             <Select
               value={audience}
               onValueChange={(value) => setAudience(value as any)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select audience" />
+                <SelectValue placeholder="Select level" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="elementary">Elementary</SelectItem>
-                <SelectItem value="highSchool">High School</SelectItem>
-                <SelectItem value="undergraduate">Undergraduate</SelectItem>
+                <SelectItem value="elementary">Easy</SelectItem>
+                <SelectItem value="highSchool">Normal</SelectItem>
+                <SelectItem value="undergraduate">Hard</SelectItem>
               </SelectContent>
             </Select>
           </div>

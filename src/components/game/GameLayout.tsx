@@ -1,12 +1,11 @@
-
 import { PaeCell } from "@/types/game";
 import { DifficultyLevel, GameMode, AudienceType } from "./GameSettingsContext";
 import PaeGrid from "./PaeGrid";
-import ProteinModel from "./ProteinModel";
 import QuestionArea from "./QuestionArea";
 import ScoreBoard from "./ScoreBoard";
-import { ProteinStructure } from "@/services/proteinDataService";
 import ProteinInfo from "./ProteinInfo";
+import ProteinModel3D from './ProteinModel3D';
+import { ProteinStructure } from "@/services/proteinDataService";
 
 interface GameLayoutProps {
   paeGrid: PaeCell[][];
@@ -51,8 +50,12 @@ const GameLayout = ({
           </div>
           
           <div className="w-full md:w-1/2">
-            <h2 className="text-xl font-bold mb-3 text-center">Protein Model</h2>
-            <ProteinModel paeGrid={paeGrid} selectedCell={selectedCell} />
+            <h2 className="text-xl font-bold mb-3 text-center">3D Protein Model</h2>
+            <ProteinModel3D 
+              paeGrid={paeGrid} 
+              selectedCell={selectedCell} 
+              gridSize={paeGrid.length}
+            />
           </div>
         </div>
         
