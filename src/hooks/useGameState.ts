@@ -58,11 +58,14 @@ export function useGameState(
     
     try {
       // Generate a question based on the selected cell and current settings
+      // Now include protein information when available
       const questionData = await generateQuestion(
         cell.confidence,
         difficulty,
         audience,
-        gameMode
+        gameMode,
+        proteinData?.name,
+        proteinData?.function[audience]
       );
       
       setCurrentQuestion(questionData.question);
@@ -221,4 +224,3 @@ export function useGameState(
     setSelectedMapType
   };
 }
-

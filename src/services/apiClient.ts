@@ -8,6 +8,9 @@ interface QuestionResponse {
   correctAnswer: string;
 }
 
+// Get the API URL from environment variables
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 /**
  * Generate a question based on the selected cell's confidence level and game settings
  */
@@ -15,211 +18,79 @@ export async function generateQuestion(
   confidence: ConfidenceLevel,
   difficulty: DifficultyLevel,
   audience: AudienceType,
-  gameMode: GameMode
+  gameMode: GameMode,
+  proteinName?: string,
+  proteinFunction?: string
 ): Promise<QuestionResponse> {
   try {
-    // In a production environment, this would be a real API call
-    // For now, we'll simulate the API response
+    const endpoint = `${BACKEND_URL}/api/generate-question`;
     
-    // Add a small artificial delay to simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
+    const payload = {
+      confidence,
+      difficulty,
+      audience,
+      gameMode,
+      proteinName,
+      proteinFunction
+    };
     
-    // Generate a question based on confidence level and difficulty
-    let question = "";
-    let options: string[] = [];
-    let correctAnswer = "";
+    console.log('Sending question generation request to:', endpoint);
     
-    // Adjust question complexity based on target audience and difficulty
-    if (audience === "elementary") {
-      if (difficulty === "beginner") {
-        question = `Is this part of the protein ${confidence === "high" ? "very stable" : confidence === "medium" ? "a little wobbly" : "very wobbly"}?`;
-        options = ["Yes", "No"];
-        correctAnswer = "Yes";
-      } else if (difficulty === "intermediate") {
-        question = `What do scientists think about this part of the protein?`;
-        
-        if (confidence === "high") {
-          options = ["They're very sure about it", "They're not sure about it"];
-          correctAnswer = "They're very sure about it";
-        } else if (confidence === "medium") {
-          options = ["They're a little bit sure", "They're very sure about it"];
-          correctAnswer = "They're a little bit sure";
-        } else {
-          options = ["They're not very sure", "They're very sure about it"];
-          correctAnswer = "They're not very sure";
-        }
-      } else {
-        // Advanced for elementary
-        question = `If you were a scientist looking at this protein, what would you think?`;
-        
-        if (confidence === "high") {
-          options = ["I'm confident this part is correct", "I think this part might be wrong"];
-          correctAnswer = "I'm confident this part is correct";
-        } else if (confidence === "medium") {
-          options = ["This part might move around a bit", "This part is definitely fixed in place"];
-          correctAnswer = "This part might move around a bit";
-        } else {
-          options = ["I'm not sure about this part", "I'm very sure about this part"];
-          correctAnswer = "I'm not sure about this part";
-        }
-      }
-    } else if (audience === "highSchool") {
-      // Questions for high school students
-      if (difficulty === "beginner") {
-        question = `What does the ${confidence === "high" ? "green" : confidence === "medium" ? "yellow" : "red"} color indicate about this region?`;
-        
-        if (confidence === "high") {
-          options = ["High confidence prediction", "Low confidence prediction"];
-          correctAnswer = "High confidence prediction";
-        } else if (confidence === "medium") {
-          options = ["Medium confidence prediction", "High confidence prediction"];
-          correctAnswer = "Medium confidence prediction";
-        } else {
-          options = ["Low confidence prediction", "High confidence prediction"];
-          correctAnswer = "Low confidence prediction";
-        }
-      } else if (difficulty === "intermediate") {
-        question = "What might this confidence level tell us about the protein structure?";
-        
-        if (confidence === "high") {
-          options = [
-            "This part is likely correctly predicted",
-            "This part is likely flexible",
-            "This part is likely misfolded"
-          ];
-          correctAnswer = "This part is likely correctly predicted";
-        } else if (confidence === "medium") {
-          options = [
-            "This part may have some flexibility",
-            "This part is definitely incorrect",
-            "This part is definitely rigid"
-          ];
-          correctAnswer = "This part may have some flexibility";
-        } else {
-          options = [
-            "This part has high uncertainty",
-            "This part is definitely correct",
-            "This part is definitely part of a helix"
-          ];
-          correctAnswer = "This part has high uncertainty";
-        }
-      } else {
-        // Advanced for high school
-        question = "What does the PAE value in this region suggest about the protein structure prediction?";
-        
-        if (confidence === "high") {
-          options = [
-            "Low position error, high structural certainty",
-            "High position error, low structural certainty",
-            "Medium position error, medium structural certainty"
-          ];
-          correctAnswer = "Low position error, high structural certainty";
-        } else if (confidence === "medium") {
-          options = [
-            "Medium position error, medium structural certainty",
-            "Low position error, high structural certainty",
-            "No position error, perfect structural certainty"
-          ];
-          correctAnswer = "Medium position error, medium structural certainty";
-        } else {
-          options = [
-            "High position error, low structural certainty",
-            "Low position error, high structural certainty",
-            "Medium position error with high structural certainty"
-          ];
-          correctAnswer = "High position error, low structural certainty";
-        }
-      }
-    } else {
-      // Questions for undergraduate students
-      if (difficulty === "beginner") {
-        question = `What does this ${confidence} confidence region indicate about predicted atomic coordinates?`;
-        
-        if (confidence === "high") {
-          options = ["Low predicted error (< 5Å)", "High predicted error (> 15Å)"];
-          correctAnswer = "Low predicted error (< 5Å)";
-        } else if (confidence === "medium") {
-          options = ["Moderate predicted error (5-15Å)", "Very high predicted error (> 30Å)"];
-          correctAnswer = "Moderate predicted error (5-15Å)";
-        } else {
-          options = ["High predicted error (> 15Å)", "Low predicted error (< 5Å)"];
-          correctAnswer = "High predicted error (> 15Å)";
-        }
-      } else if (difficulty === "intermediate") {
-        question = "How would you interpret this region of the PAE map for structural analysis?";
-        
-        if (confidence === "high") {
-          options = [
-            "Reliable for modeling and hypothesis generation",
-            "Unsuitable for any structural interpretation",
-            "Only useful for secondary structure prediction"
-          ];
-          correctAnswer = "Reliable for modeling and hypothesis generation";
-        } else if (confidence === "medium") {
-          options = [
-            "Suitable for general fold prediction but not atomic details",
-            "Completely unreliable for any structural inference",
-            "As reliable as experimentally determined structures"
-          ];
-          correctAnswer = "Suitable for general fold prediction but not atomic details";
-        } else {
-          options = [
-            "Highly uncertain and should be interpreted with caution",
-            "Reliable for precise atomic positioning",
-            "Indicates crystallization artifacts in the model"
-          ];
-          correctAnswer = "Highly uncertain and should be interpreted with caution";
-        }
-      } else {
-        // Advanced for undergraduate
-        question = "In the context of AlphaFold's predicted PAE values, what structural interpretation is most appropriate for this region?";
-        
-        if (confidence === "high") {
-          options = [
-            "Well-modeled region suitable for detailed structural analysis including side-chain positions",
-            "Disordered region with high conformational entropy",
-            "Potential domain boundary with moderate uncertainty"
-          ];
-          correctAnswer = "Well-modeled region suitable for detailed structural analysis including side-chain positions";
-        } else if (confidence === "medium") {
-          options = [
-            "Region with some flexibility or uncertainty, main-chain may be reliable but side-chains less so",
-            "Completely disordered region with no defined structure",
-            "Highly accurate region with experimental-level confidence"
-          ];
-          correctAnswer = "Region with some flexibility or uncertainty, main-chain may be reliable but side-chains less so";
-        } else {
-          options = [
-            "Highly uncertain region, possibly disordered or incorrectly modeled",
-            "Region with high confidence suitable for drug design",
-            "Artifact of crystal packing forces in the model"
-          ];
-          correctAnswer = "Highly uncertain region, possibly disordered or incorrectly modeled";
-        }
-      }
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status: ${response.status}`);
     }
     
-    // Special handling for tutorial mode - simplified questions
-    if (gameMode === "tutorial") {
-      if (confidence === "high") {
-        question = "This green region means:";
-        options = ["Scientists are very sure about this part", "Scientists are not sure about this part"];
-        correctAnswer = "Scientists are very sure about this part";
-      } else if (confidence === "medium") {
-        question = "This yellow region means:";
-        options = ["Scientists are somewhat sure about this part", "Scientists are completely unsure about this part"];
-        correctAnswer = "Scientists are somewhat sure about this part";
-      } else {
-        question = "This red region means:";
-        options = ["Scientists are not very sure about this part", "Scientists are very sure about this part"];
-        correctAnswer = "Scientists are not very sure about this part";
-      }
-    }
+    // Parse the JSON response
+    const data = await response.text();
+    console.log("Raw API response:", data);
     
-    return { question, options, correctAnswer };
+    try {
+      // Try to parse the response as JSON directly
+      const jsonData = JSON.parse(data);
+      return jsonData;
+    } catch (parseError) {
+      // If direct parsing fails, look for JSON in the text (common with some LLM APIs)
+      console.error("Error parsing direct JSON response:", parseError);
+      
+      // Fallback to find JSON in string (sometimes models wrap JSON in markdown or text)
+      const jsonMatch = data.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const jsonFromText = JSON.parse(jsonMatch[0]);
+          return jsonFromText;
+        } catch (err) {
+          console.error("Failed to extract JSON from response", err);
+        }
+      }
+      
+      // If all parsing fails, return a default response
+      throw new Error("Failed to parse API response");
+    }
   } catch (error) {
     console.error("Error generating question:", error);
-    throw error;
+    
+    // Fallback questions based on confidence level and difficulty
+    if (difficulty === "beginner") {
+      return {
+        question: `Is this part of the protein ${confidence === "high" ? "very stable" : confidence === "medium" ? "a little wobbly" : "very wobbly"}?`,
+        options: ["Yes", "No"],
+        correctAnswer: "Yes"
+      };
+    } else {
+      return {
+        question: "What does this confidence level tell us?",
+        options: ["High certainty", "Medium certainty", "Low certainty"],
+        correctAnswer: confidence === "high" ? "High certainty" : confidence === "medium" ? "Medium certainty" : "Low certainty"
+      };
+    }
   }
 }
 
@@ -236,8 +107,7 @@ export async function generateProteinQuiz(
   numQuestions: number = 5
 ): Promise<QuizQuestion[]> {
   try {
-    // In development, simulate an API call
-    const endpoint = "/api/generate-quiz";
+    const endpoint = `${BACKEND_URL}/api/generate-quiz`;
     
     const payload = {
       proteinId,
@@ -249,22 +119,44 @@ export async function generateProteinQuiz(
       numQuestions
     };
     
-    // This is where we'd normally make the API call to Gemini
-    // For now, simulating with a delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('Sending quiz generation request to:', endpoint, payload);
     
-    // Generate sample questions based on protein info
-    // In production, this would be replaced with the actual API call
-    const sampleQuestions: QuizQuestion[] = generateSampleQuizQuestions(
-      proteinName, 
-      proteinFunction, 
-      species, 
-      difficulty, 
-      audience,
-      numQuestions
-    );
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
     
-    return sampleQuestions;
+    if (!response.ok) {
+      throw new Error(`API request failed with status: ${response.status}`);
+    }
+    
+    // Parse the response data
+    const data = await response.text();
+    console.log("Raw API quiz response:", data);
+    
+    try {
+      // Try to parse the response as JSON directly
+      const questions = JSON.parse(data);
+      return questions;
+    } catch (parseError) {
+      console.error("Error parsing direct JSON quiz response:", parseError);
+      
+      // Try to extract JSON from the response text
+      const jsonMatch = data.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          const jsonFromText = JSON.parse(jsonMatch[0]);
+          return jsonFromText;
+        } catch (err) {
+          console.error("Failed to extract JSON array from quiz response", err);
+        }
+      }
+      
+      throw new Error("Failed to parse quiz API response");
+    }
   } catch (error) {
     console.error("Error generating protein quiz:", error);
     throw error;
@@ -272,6 +164,7 @@ export async function generateProteinQuiz(
 }
 
 // Helper function to generate sample quiz questions (this would be replaced by the API call)
+// This is just kept as a fallback in case the API call fails
 function generateSampleQuizQuestions(
   proteinName: string,
   proteinFunction: string,

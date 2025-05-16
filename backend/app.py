@@ -20,8 +20,8 @@ if not api_key:
 else:
     genai.configure(api_key=api_key)
 
-# Define the model
-model = genai.GenerativeModel('gemini-1.5-pro')
+# Define the model - Updated to use Gemini-2.0-flash
+model = genai.GenerativeModel('gemini-2.0-flash')
 
 @app.route('/api/generate-question', methods=['POST'])
 def generate_question():
@@ -184,6 +184,7 @@ def generate_quiz():
         ]
         
         Make the questions engaging, educational, and appropriate for the target audience.
+        Each question should be unique and cover different aspects of the protein's structure, function, or biological context.
         """
         
         # Generate response from Gemini
