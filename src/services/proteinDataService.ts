@@ -1,4 +1,4 @@
-import { ConfidenceLevel } from "@/types/game";
+import { ConfidenceLevel, ProteinStructure } from "@/types/game";
 
 // Define protein structure types for different visualizations
 export type PaeMapType = 'full' | 'domain' | 'interface';
@@ -15,43 +15,6 @@ export type Species =
   | 'Mus musculus'
   | 'Escherichia coli K12 MG1655'
   | 'Aequorea victoria';
-
-// Define protein data structure
-export interface ProteinStructure {
-  id: string;
-  name: string;
-  species: Species;
-  description: {
-    elementary: string;
-    highSchool: string;
-    undergraduate: string;
-  };
-  function: {
-    elementary: string;
-    highSchool: string;
-    undergraduate: string;
-  };
-  disease: {
-    elementary: string | null;
-    highSchool: string | null;
-    undergraduate: string | null;
-  };
-  alphafoldLink: string;
-  literature: string[];
-  confidenceGuide: string;
-  pdbId?: string;
-  paeData: {
-    full: number[][];
-    domain?: number[][];
-    interface?: number[][];
-  };
-  domains?: {
-    name: string;
-    start: number;
-    end: number;
-    description: string;
-  }[];
-}
 
 // Sample protein data (in real implementation, this would come from an API or larger dataset)
 const proteinDatabase: ProteinStructure[] = [
@@ -1157,7 +1120,7 @@ export function getProteinById(id: string): ProteinStructure | undefined {
 export function getAvailableSpecies(): Species[] {
   const speciesSet = new Set<Species>();
   proteinDatabase.forEach(protein => {
-    speciesSet.add(protein.species);
+    speciesSet.add(protein.species as Species);
   });
   return Array.from(speciesSet);
 }
