@@ -1,11 +1,12 @@
-import { PaeCell } from "@/types/game";
+
+import { PaeCell, ProteinStructure } from "@/types/game";
 import { DifficultyLevel, GameMode, AudienceType } from "./GameSettingsContext";
 import PaeGrid from "./PaeGrid";
 import QuestionArea from "./QuestionArea";
 import ScoreBoard from "./ScoreBoard";
 import ProteinInfo from "./ProteinInfo";
 import ProteinModel3D from './ProteinModel3D';
-import { ProteinStructure } from "@/services/proteinDataService";
+import ProteinQuiz from './ProteinQuiz';
 
 interface GameLayoutProps {
   paeGrid: PaeCell[][];
@@ -22,6 +23,10 @@ interface GameLayoutProps {
   gameMode: GameMode;
   audience: AudienceType;
   proteinData: ProteinStructure | undefined;
+  quizQuestions: any[] | null;
+  quizLoading: boolean;
+  onGenerateQuiz: () => void;
+  onQuizAnswerSubmit: (question: any, answer: string) => void;
 }
 
 const GameLayout = ({
@@ -38,7 +43,11 @@ const GameLayout = ({
   difficulty,
   gameMode,
   audience,
-  proteinData
+  proteinData,
+  quizQuestions,
+  quizLoading,
+  onGenerateQuiz,
+  onQuizAnswerSubmit
 }: GameLayoutProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -75,6 +84,22 @@ const GameLayout = ({
               attempts={attempts} 
               onReset={onReset} 
               difficulty={difficulty} 
+            />
+          </div>
+          
+          {/* Add the new Protein Quiz component */}
+          <div className="mt-8">
+            <ProteinQuiz
+              proteinId={proteinData?.id || ''}
+              proteinName={proteinData?.name || 'Unknown Protein'}
+              questions={quizQuestions}
+              isLoading={quizLoading}
+              onGenerateQuiz={onGenerateQuiz}
+              onAnswerSubmit={onQuizAnswerSubmit}
+              difficulty={difficulty}
+              audience={audience}
+              score={score}
+              attempts={attempts}
             />
           </div>
         </div>

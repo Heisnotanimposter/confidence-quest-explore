@@ -127,5 +127,101 @@ def generate_question():
             }
         return jsonify(fallback_response)
 
+@app.route('/api/generate-quiz', methods=['POST'])
+def generate_quiz():
+    """
+    Generate a quiz about a specific protein based on game settings
+    """
+    try:
+        # Get data from request
+        data = request.get_json()
+        protein_id = data.get('proteinId', '')
+        protein_name = data.get('proteinName', '')
+        protein_function = data.get('proteinFunction', '')
+        species = data.get('species', '')
+        difficulty = data.get('difficulty', 'beginner')
+        audience = data.get('audience', 'elementary')
+        num_questions = data.get('numQuestions', 5)
+        
+        # Create prompt for Gemini based on protein info and settings
+        prompt = f"""
+        Generate an educational quiz about the protein {protein_name} from {species}.
+        
+        Protein Context:
+        - Name: {protein_name}
+        - Species: {species}
+        - Function: {protein_function}
+        
+        Settings:
+        - Difficulty level: {difficulty} (beginner, intermediate, or advanced)
+        - Target audience: {audience} (elementary, highSchool, or undergraduate)
+        - Number of questions: {num_questions}
+        
+        Guidelines based on difficulty:
+        - For beginner: Simple questions with clear answers, basic terminology, 3-4 options per question
+        - For intermediate: More specific questions requiring deeper understanding, 4 options per question
+        - For advanced: Complex questions requiring synthesis of information, technical terminology, 5 options per question
+        
+        Guidelines based on audience:
+        - For elementary: Simple language, visual concepts, focus on basic functions
+        - For highSchool: Some scientific terminology with explanations, link to biology curriculum concepts
+        - For undergraduate: Appropriate scientific and biochemical terminology, deeper mechanisms
+        
+        For each question:
+        1. The question should test understanding of the protein's structure, function, or biological role
+        2. Include one correct answer and several plausible but incorrect answers
+        3. Provide a clear explanation for why the correct answer is right and why the other options are wrong
+        
+        Return the response as a JSON array of question objects in this format:
+        [
+            {{
+                "question": "The question text here",
+                "options": ["option1", "option2", "option3", "option4", "option5"],
+                "correctAnswer": "The correct option here",
+                "explanation": "Detailed explanation of why the correct answer is right and why other options are wrong"
+            }},
+            ...additional questions...
+        ]
+        
+        Make the questions engaging, educational, and appropriate for the target audience.
+        """
+        
+        # Generate response from Gemini
+        response = model.generate_content(prompt)
+        
+        # Extract and return the JSON response
+        return response.text
+    
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        # Return a fallback response with some generic questions
+        fallback_response = [
+            {
+                "question": f"What is the main function of {protein_name}?",
+                "options": [
+                    f"{protein_function}",
+                    "Energy production",
+                    "DNA replication",
+                    "Cell signaling",
+                    "Immune defense"
+                ],
+                "correctAnswer": f"{protein_function}",
+                "explanation": f"The primary function of {protein_name} is {protein_function}. The other options describe different functions performed by other proteins."
+            },
+            {
+                "question": f"Which of these is NOT true about {protein_name}?",
+                "options": [
+                    f"{protein_name} is involved in quantum tunneling",
+                    f"{protein_name} is found in {species}",
+                    f"{protein_name} has a specific 3D structure",
+                    f"{protein_name} is made up of amino acids",
+                    f"{protein_name} has a biological function"
+                ],
+                "correctAnswer": f"{protein_name} is involved in quantum tunneling",
+                "explanation": f"While {protein_name} is found in {species}, has a specific 3D structure, is made of amino acids, and has biological functions, it is not involved in quantum tunneling, which is a physics concept not typically associated with protein function."
+            }
+        ]
+        return jsonify(fallback_response)
+
 if __name__ == '__main__':
     app.run(debug=True)

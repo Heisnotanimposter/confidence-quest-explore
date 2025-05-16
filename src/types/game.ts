@@ -9,7 +9,7 @@ export interface PaeCell {
   confidence: ConfidenceLevel;
 }
 
-// Export protein structure type - fixing the error in imports
+// Export protein structure type
 export interface ProteinStructure {
   id: string;
   name: string;
@@ -43,5 +43,25 @@ export interface ProteinStructure {
     start: number;
     end: number;
     description: string;
+  }[];
+}
+
+// Define quiz types
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  explanation: string;
+}
+
+export interface QuizResult {
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  questions: QuizQuestion[];
+  answeredQuestions: {
+    question: QuizQuestion;
+    userAnswer: string;
+    isCorrect: boolean;
   }[];
 }
