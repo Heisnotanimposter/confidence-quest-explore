@@ -1,5 +1,5 @@
 
-import { PaeCell, ProteinStructure } from "@/types/game";
+import { PaeCell, ProteinStructure, QuizQuestion } from "@/types/game";
 import { DifficultyLevel, GameMode, AudienceType } from "./GameSettingsContext";
 import PaeGrid from "./PaeGrid";
 import QuestionArea from "./QuestionArea";
@@ -23,10 +23,10 @@ interface GameLayoutProps {
   gameMode: GameMode;
   audience: AudienceType;
   proteinData: ProteinStructure | undefined;
-  quizQuestions: any[] | null;
+  quizQuestions: QuizQuestion[] | null;
   quizLoading: boolean;
   onGenerateQuiz: () => void;
-  onQuizAnswerSubmit: (question: any, answer: string) => void;
+  onQuizAnswerSubmit: (question: QuizQuestion, answer: string) => void;
 }
 
 const GameLayout = ({

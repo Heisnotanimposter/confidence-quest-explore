@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { PaeCell, ConfidenceLevel, QuizQuestion } from "@/types/game";
+import { PaeCell, ConfidenceLevel, QuizQuestion, QuizResult } from "@/types/game";
 import { generatePaeGrid, PaeMapType, getProteinById } from "@/services/proteinDataService";
 import { generateQuestion, generateProteinQuiz } from "@/services/apiClient";
 import { toast } from "sonner";
@@ -34,9 +35,10 @@ export function useGameState(
   // State for protein data
   const [proteinData, setProteinData] = useState(getProteinById("p1"));
   
-  // New states for quiz functionality
+  // States for quiz functionality
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[] | null>(null);
   const [quizLoading, setQuizLoading] = useState(false);
+  const [quizResults, setQuizResults] = useState<QuizResult | null>(null);
 
   // Function to generate grid based on selected protein
   const generateProteinGrid = () => {
@@ -46,6 +48,7 @@ export function useGameState(
     setSelectedCell(null);
     // Reset quiz when changing protein
     setQuizQuestions(null);
+    setQuizResults(null);
   };
 
   // Handle cell click in the PAE grid
@@ -144,6 +147,7 @@ export function useGameState(
     if (!proteinData) return;
     
     setQuizLoading(true);
+    setQuizResults(null);
     
     try {
       const questions = await generateProteinQuiz(
@@ -153,7 +157,7 @@ export function useGameState(
         proteinData.species,
         difficulty,
         audience,
-        5 // Number of questions
+        5 // Generate 5 questions
       );
       
       setQuizQuestions(questions);
@@ -188,6 +192,7 @@ export function useGameState(
     setCurrentQuestion("");
     setOptions([]);
     setQuizQuestions(null);
+    setQuizResults(null);
     toast.info("Game reset! Try to beat your previous score!");
   };
 
@@ -205,6 +210,7 @@ export function useGameState(
     proteinData,
     quizQuestions,
     quizLoading,
+    quizResults,
     generateProteinGrid,
     handleCellClick,
     handleAnswerSelect,
@@ -215,3 +221,4 @@ export function useGameState(
     setSelectedMapType
   };
 }
+
