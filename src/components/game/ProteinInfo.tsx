@@ -1,7 +1,7 @@
 
 import React from "react";
 import { AudienceType } from "./GameSettingsContext";
-import { ProteinStructure } from "@/services/proteinDataService";
+import { ProteinStructure } from "@/types/game";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { BookOpen, HelpCircle, LinkIcon } from "lucide-react";

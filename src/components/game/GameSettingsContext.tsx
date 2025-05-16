@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 // Define the available difficulty levels
@@ -36,10 +35,10 @@ interface GameSettingsProviderProps {
 }
 
 export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ children }) => {
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>('beginner');
-  const [gameMode, setGameMode] = useState<GameMode>('challenge');
-  const [audience, setAudience] = useState<AudienceType>('elementary');
-  const [gridSize, setGridSize] = useState<number>(5);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>('advanced');
+  const [gameMode, setGameMode] = useState<GameMode>('explore');
+  const [audience, setAudience] = useState<AudienceType>('undergraduate');
+  const [gridSize, setGridSize] = useState<number>(7);
 
   return (
     <GameSettingsContext.Provider

@@ -1,8 +1,8 @@
 
 import { useState } from "react";
-import { PaeCell, ConfidenceLevel } from "@/types/game";
+import { PaeCell, ConfidenceLevel, QuizQuestion, QuizResult } from "@/types/game";
 import { generatePaeGrid, PaeMapType, getProteinById } from "@/services/proteinDataService";
-import { generateQuestion } from "@/services/apiClient";
+import { generateQuestion, generateProteinQuiz } from "@/services/apiClient";
 import { toast } from "sonner";
 import { DifficultyLevel, GameMode, AudienceType } from "@/components/game/GameSettingsContext";
 
@@ -34,6 +34,11 @@ export function useGameState(
   const [selectedMapType, setSelectedMapType] = useState<PaeMapType>("full");
   // State for protein data
   const [proteinData, setProteinData] = useState(getProteinById("p1"));
+  
+  // States for quiz functionality
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[] | null>(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizResults, setQuizResults] = useState<QuizResult | null>(null);
 
   // Function to generate grid based on selected protein
   const generateProteinGrid = () => {
@@ -41,6 +46,9 @@ export function useGameState(
     setPaeGrid(grid);
     setProteinData(proteinData);
     setSelectedCell(null);
+    // Reset quiz when changing protein
+    setQuizQuestions(null);
+    setQuizResults(null);
   };
 
   // Handle cell click in the PAE grid
@@ -134,6 +142,47 @@ export function useGameState(
     }, 2000);
   };
 
+  // Generate a quiz for the current protein
+  const handleGenerateQuiz = async () => {
+    if (!proteinData) return;
+    
+    setQuizLoading(true);
+    setQuizResults(null);
+    
+    try {
+      const questions = await generateProteinQuiz(
+        proteinData.id,
+        proteinData.name,
+        proteinData.function[audience],
+        proteinData.species,
+        difficulty,
+        audience,
+        5 // Generate 5 questions
+      );
+      
+      setQuizQuestions(questions);
+    } catch (error) {
+      console.error("Failed to generate quiz:", error);
+      toast.error("Failed to generate a quiz. Please try again.");
+    } finally {
+      setQuizLoading(false);
+    }
+  };
+
+  // Handle quiz answer submission
+  const handleQuizAnswerSubmit = (question: QuizQuestion, answer: string) => {
+    // Update attempts count
+    setAttempts(attempts + 1);
+    
+    // Check if the answer is correct
+    if (answer === question.correctAnswer) {
+      // Increase score - award more points for harder difficulties
+      const pointsMultiplier = difficulty === 'advanced' ? 3 : 
+                              difficulty === 'intermediate' ? 2 : 1;
+      setScore(score + pointsMultiplier);
+    }
+  };
+
   // Reset the game
   const handleReset = () => {
     generateProteinGrid();
@@ -142,6 +191,8 @@ export function useGameState(
     setAttempts(0);
     setCurrentQuestion("");
     setOptions([]);
+    setQuizQuestions(null);
+    setQuizResults(null);
     toast.info("Game reset! Try to beat your previous score!");
   };
 
@@ -157,11 +208,17 @@ export function useGameState(
     selectedProtein,
     selectedMapType,
     proteinData,
+    quizQuestions,
+    quizLoading,
+    quizResults,
     generateProteinGrid,
     handleCellClick,
     handleAnswerSelect,
     handleReset,
+    handleGenerateQuiz,
+    handleQuizAnswerSubmit,
     setSelectedProtein,
     setSelectedMapType
   };
 }
+

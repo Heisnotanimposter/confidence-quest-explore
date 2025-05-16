@@ -23,10 +23,14 @@ const ConfidenceGame = () => {
     selectedProtein,
     selectedMapType,
     proteinData,
+    quizQuestions,
+    quizLoading,
     generateProteinGrid,
     handleCellClick,
     handleAnswerSelect,
     handleReset,
+    handleGenerateQuiz,
+    handleQuizAnswerSubmit,
     setSelectedProtein,
     setSelectedMapType
   } = useGameState(difficulty, gameMode, audience, gridSize);
@@ -74,6 +78,10 @@ const ConfidenceGame = () => {
         gameMode={gameMode}
         audience={audience}
         proteinData={proteinData}
+        quizQuestions={quizQuestions}
+        quizLoading={quizLoading}
+        onGenerateQuiz={handleGenerateQuiz}
+        onQuizAnswerSubmit={handleQuizAnswerSubmit}
       />
     </div>
   );

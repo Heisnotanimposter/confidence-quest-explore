@@ -1,12 +1,12 @@
 
-import { PaeCell } from "@/types/game";
+import { PaeCell, ProteinStructure, QuizQuestion } from "@/types/game";
 import { DifficultyLevel, GameMode, AudienceType } from "./GameSettingsContext";
 import PaeGrid from "./PaeGrid";
-import ProteinModel from "./ProteinModel";
 import QuestionArea from "./QuestionArea";
 import ScoreBoard from "./ScoreBoard";
-import { ProteinStructure } from "@/services/proteinDataService";
 import ProteinInfo from "./ProteinInfo";
+import ProteinModel3D from './ProteinModel3D';
+import ProteinQuiz from './ProteinQuiz';
 
 interface GameLayoutProps {
   paeGrid: PaeCell[][];
@@ -23,6 +23,10 @@ interface GameLayoutProps {
   gameMode: GameMode;
   audience: AudienceType;
   proteinData: ProteinStructure | undefined;
+  quizQuestions: QuizQuestion[] | null;
+  quizLoading: boolean;
+  onGenerateQuiz: () => void;
+  onQuizAnswerSubmit: (question: QuizQuestion, answer: string) => void;
 }
 
 const GameLayout = ({
@@ -39,7 +43,11 @@ const GameLayout = ({
   difficulty,
   gameMode,
   audience,
-  proteinData
+  proteinData,
+  quizQuestions,
+  quizLoading,
+  onGenerateQuiz,
+  onQuizAnswerSubmit
 }: GameLayoutProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -51,8 +59,12 @@ const GameLayout = ({
           </div>
           
           <div className="w-full md:w-1/2">
-            <h2 className="text-xl font-bold mb-3 text-center">Protein Model</h2>
-            <ProteinModel paeGrid={paeGrid} selectedCell={selectedCell} />
+            <h2 className="text-xl font-bold mb-3 text-center">3D Protein Model</h2>
+            <ProteinModel3D 
+              paeGrid={paeGrid} 
+              selectedCell={selectedCell} 
+              gridSize={paeGrid.length}
+            />
           </div>
         </div>
         
@@ -72,6 +84,22 @@ const GameLayout = ({
               attempts={attempts} 
               onReset={onReset} 
               difficulty={difficulty} 
+            />
+          </div>
+          
+          {/* Add the new Protein Quiz component */}
+          <div className="mt-8">
+            <ProteinQuiz
+              proteinId={proteinData?.id || ''}
+              proteinName={proteinData?.name || 'Unknown Protein'}
+              questions={quizQuestions}
+              isLoading={quizLoading}
+              onGenerateQuiz={onGenerateQuiz}
+              onAnswerSubmit={onQuizAnswerSubmit}
+              difficulty={difficulty}
+              audience={audience}
+              score={score}
+              attempts={attempts}
             />
           </div>
         </div>
