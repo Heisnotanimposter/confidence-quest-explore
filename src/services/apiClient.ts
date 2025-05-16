@@ -1,3 +1,4 @@
+
 import { ConfidenceLevel, QuizQuestion } from "@/types/game";
 import { DifficultyLevel, GameMode, AudienceType } from "@/components/game/GameSettingsContext";
 
@@ -126,7 +127,8 @@ export async function generateProteinQuiz(
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      mode: 'cors' // Explicitly set CORS mode
     });
     
     if (!response.ok) {

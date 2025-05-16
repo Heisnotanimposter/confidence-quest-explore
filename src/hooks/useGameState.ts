@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { PaeCell, ConfidenceLevel, QuizQuestion, QuizResult } from "@/types/game";
 import { generatePaeGrid, PaeMapType, getProteinById } from "@/services/proteinDataService";
@@ -153,6 +152,7 @@ export function useGameState(
     setQuizResults(null);
     
     try {
+      console.log("Generating quiz for:", proteinData.name);
       const questions = await generateProteinQuiz(
         proteinData.id,
         proteinData.name,
@@ -163,10 +163,43 @@ export function useGameState(
         5 // Generate 5 questions
       );
       
-      setQuizQuestions(questions);
+      if (questions && questions.length > 0) {
+        setQuizQuestions(questions);
+        toast.success(`Generated ${questions.length} questions about ${proteinData.name}`);
+      } else {
+        toast.error("Couldn't generate quiz questions. Please try again.");
+      }
     } catch (error) {
       console.error("Failed to generate quiz:", error);
       toast.error("Failed to generate a quiz. Please try again.");
+      
+      // Provide fallback questions based on the protein data
+      const fallbackQuestions: QuizQuestion[] = [
+        {
+          question: `What is the main function of ${proteinData.name}?`,
+          options: [
+            proteinData.function[audience].substring(0, 100),
+            "Energy production in cells",
+            "DNA replication and repair",
+            "Cell signaling and communication"
+          ],
+          correctAnswer: proteinData.function[audience].substring(0, 100),
+          explanation: `${proteinData.name}'s primary function is related to ${proteinData.function[audience].substring(0, 100)}`
+        },
+        {
+          question: `Which species is ${proteinData.name} from in our database?`,
+          options: [
+            proteinData.species,
+            "Drosophila melanogaster",
+            "Escherichia coli",
+            "Saccharomyces cerevisiae"
+          ],
+          correctAnswer: proteinData.species,
+          explanation: `${proteinData.name} in our database is from ${proteinData.species}`
+        }
+      ];
+      
+      setQuizQuestions(fallbackQuestions);
     } finally {
       setQuizLoading(false);
     }

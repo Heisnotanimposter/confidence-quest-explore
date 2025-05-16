@@ -1,4 +1,3 @@
-
 # Import necessary libraries
 from flask import Flask, request, jsonify
 import os
@@ -11,7 +10,8 @@ load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+# Enable CORS for all routes with appropriate configuration
+CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8080", "https://*.lovableproject.com"]}})
 
 # Configure the Gemini API
 api_key = os.getenv("GEMINI_API_KEY")
