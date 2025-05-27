@@ -9,8 +9,33 @@ interface QuestionResponse {
   correctAnswer: string;
 }
 
-// Get the API URL from environment variables
+// Get the API URL from environment variables with fallback
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
+/**
+ * Test backend connection
+ */
+export async function testBackendConnection(): Promise<boolean> {
+  try {
+    console.log('Testing backend connection to:', `${BACKEND_URL}/api/health`);
+    const response = await fetch(`${BACKEND_URL}/api/health`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Backend health check:', data);
+      return data.status === 'healthy' && data.gemini_configured;
+    }
+    return false;
+  } catch (error) {
+    console.error('Backend connection test failed:', error);
+    return false;
+  }
+}
 
 /**
  * Generate a question based on the selected cell's confidence level and game settings
@@ -24,6 +49,13 @@ export async function generateQuestion(
   proteinFunction?: string
 ): Promise<QuestionResponse> {
   try {
+    // First test if backend is available
+    const backendAvailable = await testBackendConnection();
+    if (!backendAvailable) {
+      console.warn('Backend not available, using fallback questions');
+      throw new Error('Backend not available');
+    }
+
     const endpoint = `${BACKEND_URL}/api/generate-question`;
     
     const payload = {
@@ -49,49 +81,65 @@ export async function generateQuestion(
       throw new Error(`API request failed with status: ${response.status}`);
     }
     
-    // Parse the JSON response
-    const data = await response.text();
-    console.log("Raw API response:", data);
+    const data = await response.json();
+    console.log("Question API response:", data);
     
-    try {
-      // Try to parse the response as JSON directly
-      const jsonData = JSON.parse(data);
-      return jsonData;
-    } catch (parseError) {
-      // If direct parsing fails, look for JSON in the text (common with some LLM APIs)
-      console.error("Error parsing direct JSON response:", parseError);
-      
-      // Fallback to find JSON in string (sometimes models wrap JSON in markdown or text)
-      const jsonMatch = data.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          const jsonFromText = JSON.parse(jsonMatch[0]);
-          return jsonFromText;
-        } catch (err) {
-          console.error("Failed to extract JSON from response", err);
-        }
-      }
-      
-      // If all parsing fails, return a default response
-      throw new Error("Failed to parse API response");
+    // Validate response structure
+    if (!data.question || !data.options || !data.correctAnswer) {
+      throw new Error('Invalid response structure from API');
     }
+    
+    return data;
+    
   } catch (error) {
     console.error("Error generating question:", error);
     
-    // Fallback questions based on confidence level and difficulty
-    if (difficulty === "beginner") {
-      return {
-        question: `Is this part of the protein ${confidence === "high" ? "very stable" : confidence === "medium" ? "a little wobbly" : "very wobbly"}?`,
-        options: ["Yes", "No"],
-        correctAnswer: "Yes"
-      };
-    } else {
-      return {
-        question: "What does this confidence level tell us?",
-        options: ["High certainty", "Medium certainty", "Low certainty"],
-        correctAnswer: confidence === "high" ? "High certainty" : confidence === "medium" ? "Medium certainty" : "Low certainty"
-      };
-    }
+    // Enhanced fallback questions based on confidence level and difficulty
+    return generateFallbackQuestion(confidence, difficulty, audience, proteinName);
+  }
+}
+
+/**
+ * Generate fallback questions when API is not available
+ */
+function generateFallbackQuestion(
+  confidence: ConfidenceLevel,
+  difficulty: DifficultyLevel,
+  audience: AudienceType,
+  proteinName?: string
+): QuestionResponse {
+  const proteinContext = proteinName ? ` for ${proteinName}` : '';
+  
+  if (difficulty === "beginner") {
+    return {
+      question: `How confident are we about this part of the protein${proteinContext}?`,
+      options: confidence === "high" ? ["Very confident", "Not confident"] : 
+               confidence === "medium" ? ["Somewhat confident", "Not confident"] :
+               ["Very confident", "Not confident"],
+      correctAnswer: confidence === "high" ? "Very confident" : 
+                     confidence === "medium" ? "Somewhat confident" : 
+                     "Not confident"
+    };
+  } else if (difficulty === "intermediate") {
+    return {
+      question: `What does this ${confidence} confidence value tell us about the protein structure${proteinContext}?`,
+      options: ["High prediction certainty", "Medium prediction certainty", "Low prediction certainty"],
+      correctAnswer: confidence === "high" ? "High prediction certainty" : 
+                     confidence === "medium" ? "Medium prediction certainty" : 
+                     "Low prediction certainty"
+    };
+  } else { // advanced
+    return {
+      question: `What structural insights can we derive from this ${confidence} confidence region${proteinContext}?`,
+      options: [
+        "This region is likely well-structured and correctly predicted",
+        "This region may contain prediction errors or flexibility",
+        "This region is completely disordered",
+        "This region represents a binding site"
+      ],
+      correctAnswer: confidence === "high" ? "This region is likely well-structured and correctly predicted" : 
+                     "This region may contain prediction errors or flexibility"
+    };
   }
 }
 
@@ -108,6 +156,13 @@ export async function generateProteinQuiz(
   numQuestions: number = 5
 ): Promise<QuizQuestion[]> {
   try {
+    // First test if backend is available
+    const backendAvailable = await testBackendConnection();
+    if (!backendAvailable) {
+      console.warn('Backend not available, using fallback quiz');
+      return generateFallbackQuiz(proteinName, proteinFunction, species, difficulty, audience, numQuestions);
+    }
+
     const endpoint = `${BACKEND_URL}/api/generate-quiz`;
     
     const payload = {
@@ -127,47 +182,42 @@ export async function generateProteinQuiz(
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(payload),
-      mode: 'cors' // Explicitly set CORS mode
+      body: JSON.stringify(payload)
     });
     
     if (!response.ok) {
       throw new Error(`API request failed with status: ${response.status}`);
     }
     
-    // Parse the response data
-    const data = await response.text();
-    console.log("Raw API quiz response:", data);
+    const data = await response.json();
+    console.log("Quiz API response:", data);
     
-    try {
-      // Try to parse the response as JSON directly
-      const questions = JSON.parse(data);
-      return questions;
-    } catch (parseError) {
-      console.error("Error parsing direct JSON quiz response:", parseError);
-      
-      // Try to extract JSON from the response text
-      const jsonMatch = data.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        try {
-          const jsonFromText = JSON.parse(jsonMatch[0]);
-          return jsonFromText;
-        } catch (err) {
-          console.error("Failed to extract JSON array from quiz response", err);
-        }
-      }
-      
-      throw new Error("Failed to parse quiz API response");
+    // Validate response is an array of questions
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('Invalid quiz response format');
     }
+    
+    // Validate each question has required fields
+    const validQuestions = data.filter(q => 
+      q.question && q.options && Array.isArray(q.options) && q.correctAnswer && q.explanation
+    );
+    
+    if (validQuestions.length === 0) {
+      throw new Error('No valid questions in response');
+    }
+    
+    return validQuestions;
+    
   } catch (error) {
     console.error("Error generating protein quiz:", error);
-    throw error;
+    return generateFallbackQuiz(proteinName, proteinFunction, species, difficulty, audience, numQuestions);
   }
 }
 
-// Helper function to generate sample quiz questions (this would be replaced by the API call)
-// This is just kept as a fallback in case the API call fails
-function generateSampleQuizQuestions(
+/**
+ * Generate fallback quiz questions when API is not available
+ */
+function generateFallbackQuiz(
   proteinName: string,
   proteinFunction: string,
   species: string,
@@ -175,118 +225,59 @@ function generateSampleQuizQuestions(
   audience: AudienceType,
   numQuestions: number
 ): QuizQuestion[] {
-  const questions: QuizQuestion[] = [];
-  
-  // Common question templates based on protein name and function
-  const questionTemplates = [
+  const questions: QuizQuestion[] = [
     {
-      question: `Which of the following statements BEST describes the primary function of ${proteinName} in ${species}?`,
+      question: `What is the primary function of ${proteinName}?`,
       options: [
-        `To ${proteinFunction.toLowerCase()}`,
-        `To catalyze the breakdown of glucose for energy production`,
-        `To act as a structural protein, maintaining cellular shape`,
-        `To initiate cellular division following growth signals`,
-        `To provide immunological defense against pathogens`
+        proteinFunction,
+        "Energy production in cells",
+        "DNA replication and repair",
+        "Cell membrane transport"
       ],
-      correctAnswer: `To ${proteinFunction.toLowerCase()}`,
-      explanation: `${proteinName}'s primary role is to ${proteinFunction.toLowerCase()}. The other options describe functions performed by different proteins in the cell.`
+      correctAnswer: proteinFunction,
+      explanation: `${proteinName} primarily functions to ${proteinFunction.toLowerCase()}. This is its main biological role.`
     },
     {
-      question: `Which cellular compartment would you most likely find ${proteinName} in ${species}?`,
+      question: `Which organism does ${proteinName} come from in our database?`,
       options: [
-        "Nucleus",
-        "Mitochondria",
-        "Cytoplasm",
-        "Endoplasmic Reticulum",
-        "Golgi Apparatus"
+        species,
+        "Homo sapiens",
+        "Escherichia coli",
+        "Saccharomyces cerevisiae"
       ],
-      correctAnswer: "Cytoplasm",
-      explanation: `Based on its function to ${proteinFunction.toLowerCase()}, ${proteinName} is primarily located in the cytoplasm where it can interact with its substrates and binding partners.`
-    },
-    {
-      question: `What best describes the structure of ${proteinName}?`,
-      options: [
-        "A single polypeptide chain",
-        "Multiple subunits forming a complex",
-        "A transmembrane protein with seven helical domains",
-        "A fibrous protein with repetitive sequences",
-        "A nucleoprotein complex containing both DNA and protein"
-      ],
-      correctAnswer: "Multiple subunits forming a complex",
-      explanation: `${proteinName} typically exists as a multi-subunit complex, which allows it to perform its function of ${proteinFunction.toLowerCase()} more efficiently.`
-    },
-    {
-      question: `If there was a mutation in the gene encoding ${proteinName}, what might be a possible consequence?`,
-      options: [
-        `Impaired ability to ${proteinFunction.toLowerCase()}`,
-        "No effect due to redundancy in protein function",
-        "Increased efficiency in its normal function",
-        "Change in cellular location only",
-        "Conversion to a completely different protein"
-      ],
-      correctAnswer: `Impaired ability to ${proteinFunction.toLowerCase()}`,
-      explanation: `Mutations in ${proteinName} often lead to reduced or impaired function, which can affect its ability to ${proteinFunction.toLowerCase()}. This can have significant consequences depending on how essential this protein is for cellular function.`
-    },
-    {
-      question: `Which experimental technique would be MOST useful for studying the interaction of ${proteinName} with its binding partners?`,
-      options: [
-        "Co-immunoprecipitation",
-        "PCR (Polymerase Chain Reaction)",
-        "Gel Electrophoresis",
-        "Light Microscopy",
-        "Mass Spectrometry"
-      ],
-      correctAnswer: "Co-immunoprecipitation",
-      explanation: `Co-immunoprecipitation (Co-IP) is particularly useful for studying protein-protein interactions. It would help identify which proteins interact with ${proteinName} during its function to ${proteinFunction.toLowerCase()}.`
+      correctAnswer: species,
+      explanation: `In our protein database, ${proteinName} is from ${species}.`
     }
   ];
-  
-  // Generate more specialized questions based on protein name
-  if (proteinName.toLowerCase().includes("hemoglobin")) {
+
+  // Add difficulty-specific questions
+  if (difficulty === "advanced") {
     questions.push({
-      question: `Which of the following statements BEST describes the primary function of hemoglobin in ${species}?`,
+      question: `What type of structural analysis would be most informative for studying ${proteinName}?`,
       options: [
-        "To transport oxygen from the lungs to the tissues and carbon dioxide from the tissues to the lungs",
-        "To catalyze the breakdown of glucose for energy production in red blood cells",
-        "To act as a structural protein within red blood cell membranes, maintaining their shape",
-        "To initiate the blood clotting cascade following injury",
-        "To provide immunological defense against pathogens in the bloodstream"
+        "AlphaFold prediction analysis",
+        "Basic sequence alignment",
+        "Simple BLAST search",
+        "Phylogenetic tree construction"
       ],
-      correctAnswer: "To transport oxygen from the lungs to the tissues and carbon dioxide from the tissues to the lungs",
-      explanation: "Hemoglobin's well-known role is oxygen transport. The other options describe functions performed by different proteins in the blood and red blood cells."
-    });
-  } else if (proteinName.toLowerCase().includes("insulin")) {
-    questions.push({
-      question: `What is the primary physiological role of insulin?`,
-      options: [
-        "To lower blood glucose levels by promoting glucose uptake into cells",
-        "To raise blood glucose levels when they are too low",
-        "To break down fats in the digestive system",
-        "To transport oxygen in the bloodstream",
-        "To fight against pathogens in the blood"
-      ],
-      correctAnswer: "To lower blood glucose levels by promoting glucose uptake into cells",
-      explanation: "Insulin is a hormone that regulates blood glucose by promoting its uptake into cells, thereby lowering blood glucose levels. This is critical for maintaining proper energy metabolism."
+      correctAnswer: "AlphaFold prediction analysis",
+      explanation: `AlphaFold predictions provide detailed 3D structural information that helps understand how ${proteinName} performs its function.`
     });
   }
-  
-  // Adjust difficulty based on the settings
-  if (difficulty === "beginner") {
-    // For beginners, simplify options and questions
-    return questions.slice(0, numQuestions).map(q => ({
-      ...q,
-      options: q.options.slice(0, 3), // Limit to fewer options
-      explanation: q.explanation.split('.')[0] + '.' // Shorter explanation
-    }));
-  } else if (difficulty === "advanced") {
-    // For advanced, use all options and add more technical details
-    return questions.slice(0, numQuestions).map(q => ({
-      ...q,
-      question: `${q.question} Provide the most scientifically accurate answer.`,
-      explanation: `${q.explanation} This demonstrates important principles in protein structure-function relationships and biochemistry.`
-    }));
+
+  if (difficulty !== "beginner") {
+    questions.push({
+      question: `How might mutations in ${proteinName} affect its function?`,
+      options: [
+        "Could impair its ability to perform its normal function",
+        "Would have no effect on the protein",
+        "Would always improve its function",
+        "Would only affect protein color"
+      ],
+      correctAnswer: "Could impair its ability to perform its normal function",
+      explanation: `Mutations in ${proteinName} could potentially disrupt its structure and impair its ability to ${proteinFunction.toLowerCase()}.`
+    });
   }
-  
-  // Return standard questions for intermediate
+
   return questions.slice(0, numQuestions);
 }

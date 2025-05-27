@@ -1,27 +1,52 @@
+
 # Import necessary libraries
 from flask import Flask, request, jsonify
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 from flask_cors import CORS
+import traceback
 
 # Load environment variables
 load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
-# Enable CORS for all routes with appropriate configuration
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8080", "https://*.lovableproject.com"]}})
+
+# Enable CORS for all routes with more permissive configuration for development
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:8080", "https://*.lovableproject.com", "http://localhost:*"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 # Configure the Gemini API
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     print("WARNING: GEMINI_API_KEY not found in environment variables")
+    print("Please set GEMINI_API_KEY in your .env file")
 else:
+    print("GEMINI_API_KEY found, configuring Gemini...")
     genai.configure(api_key=api_key)
 
 # Define the model - Updated to use Gemini-2.0-flash
-model = genai.GenerativeModel('gemini-2.0-flash')
+try:
+    model = genai.GenerativeModel('gemini-2.0-flash')
+    print("Gemini model initialized successfully")
+except Exception as e:
+    print(f"Error initializing Gemini model: {e}")
+    model = None
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "gemini_configured": api_key is not None,
+        "model_ready": model is not None
+    })
 
 @app.route('/api/generate-question', methods=['POST'])
 def generate_question():
@@ -29,11 +54,16 @@ def generate_question():
     Generate a question about protein confidence based on the selected cell and game settings
     """
     try:
+        # Check if Gemini is configured
+        if not api_key or not model:
+            raise Exception("Gemini API not configured properly")
+            
         # Get data from request
         data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+            
         confidence_level = data.get('confidence', 'medium')
-        row = data.get('row', 0)
-        col = data.get('col', 0)
         difficulty = data.get('difficulty', 'beginner')
         audience = data.get('audience', 'elementary')
         game_mode = data.get('gameMode', 'challenge')
@@ -41,7 +71,8 @@ def generate_question():
         # Get protein information if provided
         protein_name = data.get('proteinName', '')
         protein_function = data.get('proteinFunction', '')
-        map_type = data.get('mapType', 'full')
+        
+        print(f"Generating question for: {protein_name}, confidence: {confidence_level}, difficulty: {difficulty}")
         
         # Create prompt for Gemini based on settings and protein info
         prompt = f"""
@@ -52,27 +83,15 @@ def generate_question():
         - Target audience: {audience} (elementary, highSchool, or undergraduate)
         - Game mode: {game_mode} (tutorial, challenge, or explore)
         - The confidence level for the selected part is: {confidence_level} (high, medium, or low)
-        - This corresponds to position [{row}, {col}] in the PAE map
         
         {f"Protein-specific context:" if protein_name else ""}
         {f"- Protein name: {protein_name}" if protein_name else ""}
         {f"- Protein function: {protein_function}" if protein_function else ""}
-        {f"- PAE map type: {map_type} (full protein, domain-specific, or subunit interface)" if map_type else ""}
         
         Guidelines based on difficulty:
         - For beginner: Very simple questions with straightforward answers, focus on basic understanding
         - For intermediate: More nuanced questions, introduce some protein structure concepts
         - For advanced: Complex questions that explore uncertainty in predictions, domain interactions, etc.
-        
-        Guidelines based on audience:
-        - For elementary: Use simple language, avoid technical terms, focus on intuitive understanding
-        - For highSchool: Can use some technical terms with explanations
-        - For undergraduate: Can use appropriate technical language for biology/biochemistry students
-        
-        Guidelines based on game mode:
-        - For tutorial: Include some educational content in the question itself
-        - For challenge: Focus on testing knowledge
-        - For explore: Focus on interesting facts and insights about protein structure prediction
         
         Return the response in this JSON format:
         {{
@@ -83,19 +102,41 @@ def generate_question():
         
         The options should include the correct answer and 1-3 incorrect answers, depending on difficulty.
         For beginner, limit to 2 options. For intermediate, use 2-3 options. For advanced, use 3-4 options.
-        
-        If this is a real protein (e.g., {protein_name}), include that context in the question and make it
-        relevant to the protein's structure and function when appropriate.
         """
         
         # Generate response from Gemini
         response = model.generate_content(prompt)
         
         # Extract and return the JSON response
-        return response.text
+        response_text = response.text.strip()
+        print(f"Raw Gemini response: {response_text}")
+        
+        # Try to parse JSON from response
+        import json
+        try:
+            # Try direct JSON parsing first
+            json_data = json.loads(response_text)
+            return jsonify(json_data)
+        except json.JSONDecodeError:
+            # Try to extract JSON from markdown code blocks
+            import re
+            json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+            if json_match:
+                json_data = json.loads(json_match.group(1))
+                return jsonify(json_data)
+            
+            # Try to find any JSON-like structure
+            json_match = re.search(r'\{[\s\S]*\}', response_text)
+            if json_match:
+                json_data = json.loads(json_match.group(0))
+                return jsonify(json_data)
+            
+            raise Exception("Could not parse JSON from response")
     
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print(f"Error generating question: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        
         # Fallback response based on difficulty
         if difficulty == 'advanced':
             fallback_response = {
@@ -120,10 +161,8 @@ def generate_question():
         else:  # beginner
             fallback_response = {
                 "question": f"How confident are we about this part of the protein?",
-                "options": ["Very confident", "Somewhat confident", "Not confident"],
-                "correctAnswer": "Very confident" if confidence_level == "high" else 
-                                "Somewhat confident" if confidence_level == "medium" else 
-                                "Not confident"
+                "options": ["Very confident", "Not confident"],
+                "correctAnswer": "Very confident" if confidence_level == "high" else "Not confident"
             }
         return jsonify(fallback_response)
 
@@ -133,8 +172,15 @@ def generate_quiz():
     Generate a quiz about a specific protein based on game settings
     """
     try:
+        # Check if Gemini is configured
+        if not api_key or not model:
+            raise Exception("Gemini API not configured properly")
+            
         # Get data from request
         data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+            
         protein_id = data.get('proteinId', '')
         protein_name = data.get('proteinName', '')
         protein_function = data.get('proteinFunction', '')
@@ -142,6 +188,8 @@ def generate_quiz():
         difficulty = data.get('difficulty', 'beginner')
         audience = data.get('audience', 'elementary')
         num_questions = data.get('numQuestions', 5)
+        
+        print(f"Generating quiz for: {protein_name} ({species}), difficulty: {difficulty}, audience: {audience}")
         
         # Create prompt for Gemini based on protein info and settings
         prompt = f"""
@@ -160,41 +208,54 @@ def generate_quiz():
         Guidelines based on difficulty:
         - For beginner: Simple questions with clear answers, basic terminology, 3-4 options per question
         - For intermediate: More specific questions requiring deeper understanding, 4 options per question
-        - For advanced: Complex questions requiring synthesis of information, technical terminology, 5 options per question
-        
-        Guidelines based on audience:
-        - For elementary: Simple language, visual concepts, focus on basic functions
-        - For highSchool: Some scientific terminology with explanations, link to biology curriculum concepts
-        - For undergraduate: Appropriate scientific and biochemical terminology, deeper mechanisms
-        
-        For each question:
-        1. The question should test understanding of the protein's structure, function, or biological role
-        2. Include one correct answer and several plausible but incorrect answers
-        3. Provide a clear explanation for why the correct answer is right and why the other options are wrong
+        - For advanced: Complex questions requiring synthesis of information, technical terminology, 4-5 options per question
         
         Return the response as a JSON array of question objects in this format:
         [
             {{
                 "question": "The question text here",
-                "options": ["option1", "option2", "option3", "option4", "option5"],
+                "options": ["option1", "option2", "option3", "option4"],
                 "correctAnswer": "The correct option here",
-                "explanation": "Detailed explanation of why the correct answer is right and why other options are wrong"
+                "explanation": "Detailed explanation of why the correct answer is right"
             }},
             ...additional questions...
         ]
         
-        Make the questions engaging, educational, and appropriate for the target audience.
-        Each question should be unique and cover different aspects of the protein's structure, function, or biological context.
+        Make sure to return valid JSON only, no extra text or markdown formatting.
         """
         
         # Generate response from Gemini
         response = model.generate_content(prompt)
+        response_text = response.text.strip()
         
-        # Extract and return the JSON response
-        return response.text
+        print(f"Raw quiz response: {response_text}")
+        
+        # Parse JSON response
+        import json
+        try:
+            # Try direct JSON parsing first
+            json_data = json.loads(response_text)
+            return jsonify(json_data)
+        except json.JSONDecodeError:
+            # Try to extract JSON from markdown code blocks
+            import re
+            json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
+            if json_match:
+                json_data = json.loads(json_match.group(1))
+                return jsonify(json_data)
+            
+            # Try to find any JSON array structure
+            json_match = re.search(r'\[[\s\S]*\]', response_text)
+            if json_match:
+                json_data = json.loads(json_match.group(0))
+                return jsonify(json_data)
+            
+            raise Exception("Could not parse JSON from quiz response")
     
     except Exception as e:
-        print(f"Error: {str(e)}")
+        print(f"Error generating protein quiz: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        
         # Return a fallback response with some generic questions
         fallback_response = [
             {
@@ -203,26 +264,26 @@ def generate_quiz():
                     f"{protein_function}",
                     "Energy production",
                     "DNA replication",
-                    "Cell signaling",
-                    "Immune defense"
+                    "Cell signaling"
                 ],
                 "correctAnswer": f"{protein_function}",
-                "explanation": f"The primary function of {protein_name} is {protein_function}. The other options describe different functions performed by other proteins."
+                "explanation": f"The primary function of {protein_name} is {protein_function}."
             },
             {
-                "question": f"Which of these is NOT true about {protein_name}?",
+                "question": f"Which species does {protein_name} come from in our database?",
                 "options": [
-                    f"{protein_name} is involved in quantum tunneling",
-                    f"{protein_name} is found in {species}",
-                    f"{protein_name} has a specific 3D structure",
-                    f"{protein_name} is made up of amino acids",
-                    f"{protein_name} has a biological function"
+                    f"{species}",
+                    "Homo sapiens",
+                    "Escherichia coli",
+                    "Saccharomyces cerevisiae"
                 ],
-                "correctAnswer": f"{protein_name} is involved in quantum tunneling",
-                "explanation": f"While {protein_name} is found in {species}, has a specific 3D structure, is made of amino acids, and has biological functions, it is not involved in quantum tunneling, which is a physics concept not typically associated with protein function."
+                "correctAnswer": f"{species}",
+                "explanation": f"{protein_name} in our database is from {species}."
             }
         ]
         return jsonify(fallback_response)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    print("Starting Flask server...")
+    print(f"GEMINI_API_KEY configured: {api_key is not None}")
+    app.run(debug=True, host='0.0.0.0', port=5000)
