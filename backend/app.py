@@ -286,4 +286,4 @@ def generate_quiz():
 if __name__ == '__main__':
     print("Starting Flask server...")
     print(f"GEMINI_API_KEY configured: {api_key is not None}")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)
