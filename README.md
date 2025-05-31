@@ -1,11 +1,11 @@
 
 # Confidence Challenge Game
 
-An educational game for elementary school children to understand protein structure prediction confidence concepts.
+An educational game for entry level researcher or student to understand protein structure prediction confidence concepts.
 
 ## Project Overview
 
-This game helps children understand PAE (Predicted Aligned Error) Viewer concepts for protein structure prediction confidence through interactive challenges.
+This game helps newcomers understand PAE (Predicted Aligned Error) Viewer concepts for protein structure prediction confidence through interactive challenges.
 
 Features:
 - 5x5 grid representing a simplified PAE map with color-coded confidence levels
