@@ -131,9 +131,10 @@ export function useGameState(
       const pointsMultiplier = difficulty === 'advanced' ? 3 : 
                               difficulty === 'intermediate' ? 2 : 1;
       setScore(score + pointsMultiplier);
-      toast.success(`Correct answer! +${pointsMultiplier} points 🎉`);
+      const cheers = ['Nailed it! 🎉', 'You got it! ⭐', 'Awesome! 🌟', 'Spot on! 💪', 'Brilliant! 🧠'];
+      toast.success(`${cheers[Math.floor(Math.random() * cheers.length)]} +${pointsMultiplier} point${pointsMultiplier > 1 ? 's' : ''}`);
     } else {
-      toast.error(`Incorrect. The correct answer is: ${correctAnswer}`);
+      toast.error(`Not quite! The answer was: ${correctAnswer}. Keep going — you're learning! 📈`);
     }
     
     // Reset selected cell after answering
@@ -165,13 +166,13 @@ export function useGameState(
       
       if (questions && questions.length > 0) {
         setQuizQuestions(questions);
-        toast.success(`Generated ${questions.length} questions about ${proteinData.name}`);
+        toast.success(`${questions.length} questions ready! Let's go! 🎯`);
       } else {
-        toast.error("Couldn't generate quiz questions. Please try again.");
+        toast.error("Hmm, couldn't create questions right now. Try again? 🔄");
       }
     } catch (error) {
       console.error("Failed to generate quiz:", error);
-      toast.error("Failed to generate a quiz. Please try again.");
+      toast.error("Oops! Something went wrong. Let's try again 🔄");
       
       // Provide fallback questions based on the protein data
       const fallbackQuestions: QuizQuestion[] = [
@@ -229,7 +230,7 @@ export function useGameState(
     setOptions([]);
     setQuizQuestions(null);
     setQuizResults(null);
-    toast.info("Game reset! Try to beat your previous score!");
+    toast.info("Fresh start! Let's see how you do this time 🚀");
   };
 
   return {
