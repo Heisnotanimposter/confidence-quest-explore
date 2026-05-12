@@ -39,6 +39,30 @@ except Exception as e:
     print(f"Error initializing Gemini model: {e}")
     model = None
 
+# Audience language guidelines
+AUDIENCE_GUIDELINES = {
+    "elementary": (
+        "Write like you're explaining to a curious 10-year-old who loves science. "
+        "Use simple words, fun comparisons, and emoji where appropriate. "
+        "Avoid ALL technical jargon — no words like 'residue', 'domain', 'subunit', 'conformation'. "
+        "Instead of 'protein structure', say 'protein shape'. "
+        "Instead of 'high confidence prediction', say 'the computer is very sure about this part'. "
+        "Make questions feel like a fun game, not an exam."
+    ),
+    "highSchool": (
+        "Write for a high school biology student. "
+        "You can use basic scientific terms but always briefly define them. "
+        "Use relatable analogies (weather forecasts, GPS accuracy, etc.) to explain confidence concepts. "
+        "Questions should feel educational but not intimidating."
+    ),
+    "undergraduate": (
+        "Write for an undergraduate biochemistry student. "
+        "You can use proper scientific terminology (PAE, RMSD, alpha helix, etc.). "
+        "Questions should test genuine understanding of protein structure and prediction confidence. "
+        "Include nuance about uncertainty and structural biology."
+    )
+}
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
@@ -51,7 +75,8 @@ def health_check():
 @app.route('/api/generate-question', methods=['POST'])
 def generate_question():
     """
-    Generate a question about protein confidence based on the selected cell and game settings
+    Generate a question about protein confidence based on the selected cell and game settings.
+    Questions are tailored to the audience level with appropriate language.
     """
     try:
         # Check if Gemini is configured
@@ -72,36 +97,59 @@ def generate_question():
         protein_name = data.get('proteinName', '')
         protein_function = data.get('proteinFunction', '')
         
-        print(f"Generating question for: {protein_name}, confidence: {confidence_level}, difficulty: {difficulty}")
+        print(f"Generating question for: {protein_name}, confidence: {confidence_level}, difficulty: {difficulty}, audience: {audience}")
+        
+        # Get audience-appropriate language guidelines
+        lang_guide = AUDIENCE_GUIDELINES.get(audience, AUDIENCE_GUIDELINES["elementary"])
+        
+        # Friendly confidence descriptions per audience
+        confidence_desc = {
+            "elementary": {
+                "high": "the computer is VERY sure about this part (green square)",
+                "medium": "the computer is KINDA sure about this part (yellow square)",
+                "low": "the computer is mostly GUESSING about this part (red square)"
+            },
+            "highSchool": {
+                "high": "high confidence — the AI is quite certain about this region's structure",
+                "medium": "medium confidence — there's some uncertainty in this prediction",
+                "low": "low confidence — the AI is not very sure about this region"
+            },
+            "undergraduate": {
+                "high": "low PAE values indicating high prediction confidence",
+                "medium": "moderate PAE values suggesting some structural uncertainty",
+                "low": "high PAE values indicating low prediction confidence"
+            }
+        }
+        
+        conf_desc = confidence_desc.get(audience, confidence_desc["elementary"]).get(confidence_level, "")
         
         # Create prompt for Gemini based on settings and protein info
         prompt = f"""
-        Generate an educational question about protein structure prediction confidence.
+        Generate ONE educational question about protein structure prediction confidence.
         
-        Settings:
-        - Difficulty level: {difficulty} (beginner, intermediate, or advanced)
-        - Target audience: {audience} (elementary, highSchool, or undergraduate)
-        - Game mode: {game_mode} (tutorial, challenge, or explore)
-        - The confidence level for the selected part is: {confidence_level} (high, medium, or low)
+        CRITICAL LANGUAGE GUIDELINES:
+        {lang_guide}
         
-        {f"Protein-specific context:" if protein_name else ""}
+        Context:
+        - The user clicked on a square that shows: {conf_desc}
+        - Difficulty level: {difficulty}
+        - Game mode: {game_mode}
+        
+        {f"Protein context:" if protein_name else ""}
         {f"- Protein name: {protein_name}" if protein_name else ""}
-        {f"- Protein function: {protein_function}" if protein_function else ""}
+        {f"- What it does: {protein_function}" if protein_function else ""}
         
-        Guidelines based on difficulty:
-        - For beginner: Very simple questions with straightforward answers, focus on basic understanding
-        - For intermediate: More nuanced questions, introduce some protein structure concepts
-        - For advanced: Complex questions that explore uncertainty in predictions, domain interactions, etc.
+        Question guidelines based on difficulty:
+        - Beginner: Frame as a fun curiosity. Use the colors (green/yellow/red) as anchors. Only 2 options.
+        - Intermediate: Ask about what confidence means for the protein. Use 2-3 options.
+        - Advanced: Explore structural implications of confidence levels. Use 3-4 options.
         
-        Return the response in this JSON format:
+        Return ONLY valid JSON in this format (no markdown, no extra text):
         {{
-            "question": "The question text here",
-            "options": ["option1", "option2", ...],
-            "correctAnswer": "The correct option here"
+            "question": "Your friendly question here",
+            "options": ["option1", "option2"],
+            "correctAnswer": "The correct option (must exactly match one of the options)"
         }}
-        
-        The options should include the correct answer and 1-3 incorrect answers, depending on difficulty.
-        For beginner, limit to 2 options. For intermediate, use 2-3 options. For advanced, use 3-4 options.
         """
         
         # Generate response from Gemini
@@ -137,39 +185,56 @@ def generate_question():
         print(f"Error generating question: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
         
-        # Fallback response based on difficulty
-        if difficulty == 'advanced':
+        # Friendly fallback responses based on audience and difficulty
+        if audience == 'elementary':
+            if confidence_level == "high":
+                fallback_response = {
+                    "question": f"You clicked a green square! What does green mean for the computer's guess about {protein_name or 'this protein'}?",
+                    "options": ["The computer is very sure! ✅", "The computer is just guessing 🤷"],
+                    "correctAnswer": "The computer is very sure! ✅"
+                }
+            elif confidence_level == "medium":
+                fallback_response = {
+                    "question": f"You clicked a yellow square! How sure is the computer about this part of {protein_name or 'the protein'}?",
+                    "options": ["Kinda sure — not perfect 🤔", "Totally sure! 💯"],
+                    "correctAnswer": "Kinda sure — not perfect 🤔"
+                }
+            else:
+                fallback_response = {
+                    "question": f"Uh oh, you found a red square! What does that mean for {protein_name or 'this protein'}?",
+                    "options": ["The computer is mostly guessing! 🎲", "The computer is super confident! 💪"],
+                    "correctAnswer": "The computer is mostly guessing! 🎲"
+                }
+        elif difficulty == 'advanced':
             fallback_response = {
-                "question": f"What can we infer about the protein structure based on this {confidence_level} confidence region?",
-                "options": ["This region is likely well-structured and correctly predicted", 
-                           "This region may contain prediction errors", 
-                           "This region is likely disordered"],
+                "question": f"What structural inference can we draw from this {confidence_level} confidence region of {protein_name or 'the protein'}?",
+                "options": [
+                    "This region is likely well-structured and correctly predicted", 
+                    "This region may contain prediction errors or structural flexibility", 
+                    "This region is likely intrinsically disordered"
+                ],
                 "correctAnswer": "This region is likely well-structured and correctly predicted" if confidence_level == "high" else 
-                                "This region may have some flexibility" if confidence_level == "medium" else 
-                                "This region may contain prediction errors"
+                                "This region may contain prediction errors or structural flexibility"
             }
-        elif difficulty == 'intermediate':
+        else:
             fallback_response = {
-                "question": f"What does this {confidence_level} confidence value tell us?",
-                "options": ["High certainty in the prediction", 
-                           "Medium certainty in the prediction", 
-                           "Low certainty in the prediction"],
-                "correctAnswer": "High certainty in the prediction" if confidence_level == "high" else 
-                                "Medium certainty in the prediction" if confidence_level == "medium" else 
-                                "Low certainty in the prediction"
-            }
-        else:  # beginner
-            fallback_response = {
-                "question": f"How confident are we about this part of the protein?",
-                "options": ["Very confident", "Not confident"],
-                "correctAnswer": "Very confident" if confidence_level == "high" else "Not confident"
+                "question": f"The AI gave this part of {protein_name or 'the protein'} a {confidence_level} confidence score. What does that tell us?",
+                "options": [
+                    "The AI is very confident about this prediction",
+                    "The AI has some uncertainty here",
+                    "The AI is not very confident about this prediction"
+                ],
+                "correctAnswer": "The AI is very confident about this prediction" if confidence_level == "high" else 
+                                "The AI has some uncertainty here" if confidence_level == "medium" else 
+                                "The AI is not very confident about this prediction"
             }
         return jsonify(fallback_response)
 
 @app.route('/api/generate-quiz', methods=['POST'])
 def generate_quiz():
     """
-    Generate a quiz about a specific protein based on game settings
+    Generate a quiz about a specific protein based on game settings.
+    Questions use audience-appropriate language.
     """
     try:
         # Check if Gemini is configured
@@ -191,37 +256,42 @@ def generate_quiz():
         
         print(f"Generating quiz for: {protein_name} ({species}), difficulty: {difficulty}, audience: {audience}")
         
+        # Get audience-appropriate language guidelines
+        lang_guide = AUDIENCE_GUIDELINES.get(audience, AUDIENCE_GUIDELINES["elementary"])
+        
         # Create prompt for Gemini based on protein info and settings
         prompt = f"""
-        Generate an educational quiz about the protein {protein_name} from {species}.
+        Generate a fun, educational quiz about the protein {protein_name} from {species}.
+        
+        CRITICAL LANGUAGE GUIDELINES:
+        {lang_guide}
         
         Protein Context:
         - Name: {protein_name}
-        - Species: {species}
-        - Function: {protein_function}
+        - From: {species}
+        - What it does: {protein_function}
         
         Settings:
-        - Difficulty level: {difficulty} (beginner, intermediate, or advanced)
-        - Target audience: {audience} (elementary, highSchool, or undergraduate)
+        - Difficulty: {difficulty}
         - Number of questions: {num_questions}
         
-        Guidelines based on difficulty:
-        - For beginner: Simple questions with clear answers, basic terminology, 3-4 options per question
-        - For intermediate: More specific questions requiring deeper understanding, 4 options per question
-        - For advanced: Complex questions requiring synthesis of information, technical terminology, 4-5 options per question
+        Question guidelines:
+        - Beginner: Fun, curiosity-driven questions. Use analogies. 3 options per question.
+        - Intermediate: Educational questions with some science vocabulary. 4 options per question.  
+        - Advanced: Challenging questions requiring synthesis. 4-5 options per question.
         
-        Return the response as a JSON array of question objects in this format:
+        IMPORTANT: Make questions feel like a fun exploration, NOT a medical school exam.
+        Frame questions around "why should I care about this protein?" and "what's cool about it?"
+        
+        Return ONLY a valid JSON array (no markdown, no extra text):
         [
             {{
-                "question": "The question text here",
-                "options": ["option1", "option2", "option3", "option4"],
-                "correctAnswer": "The correct option here",
-                "explanation": "Detailed explanation of why the correct answer is right"
-            }},
-            ...additional questions...
+                "question": "Your engaging question here",
+                "options": ["option1", "option2", "option3"],
+                "correctAnswer": "Must exactly match one option",
+                "explanation": "A friendly, clear explanation of why this is the answer"
+            }}
         ]
-        
-        Make sure to return valid JSON only, no extra text or markdown formatting.
         """
         
         # Generate response from Gemini
@@ -256,21 +326,21 @@ def generate_quiz():
         print(f"Error generating protein quiz: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
         
-        # Return a fallback response with some generic questions
+        # Friendly fallback questions
         fallback_response = [
             {
-                "question": f"What is the main function of {protein_name}?",
+                "question": f"What's the main job of {protein_name} in our body?" if species == "Homo sapiens" else f"What does {protein_name} do?",
                 "options": [
                     f"{protein_function}",
-                    "Energy production",
-                    "DNA replication",
-                    "Cell signaling"
+                    "Making energy from sunlight",
+                    "Copying DNA",
+                    "Sending messages between cells"
                 ],
                 "correctAnswer": f"{protein_function}",
-                "explanation": f"The primary function of {protein_name} is {protein_function}."
+                "explanation": f"{protein_name}'s main job is: {protein_function}. Pretty cool, right?"
             },
             {
-                "question": f"Which species does {protein_name} come from in our database?",
+                "question": f"Where does {protein_name} come from?",
                 "options": [
                     f"{species}",
                     "Homo sapiens",
@@ -278,12 +348,12 @@ def generate_quiz():
                     "Saccharomyces cerevisiae"
                 ],
                 "correctAnswer": f"{species}",
-                "explanation": f"{protein_name} in our database is from {species}."
+                "explanation": f"The version of {protein_name} we're looking at comes from {species}."
             }
         ]
         return jsonify(fallback_response)
 
 if __name__ == '__main__':
-    print("Starting Flask server...")
+    print("Starting Confidence Quest backend server...")
     print(f"GEMINI_API_KEY configured: {api_key is not None}")
     app.run(debug=True, host='0.0.0.0', port=5001)
