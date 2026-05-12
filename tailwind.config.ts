@@ -19,6 +19,9 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -63,13 +66,16 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Adding custom game colors
+				// Warm, friendly game colors
 				game: {
-					'high': '#4ade80',    // Bright green for high confidence
-					'medium': '#fcd34d',  // Yellow for medium confidence
-					'low': '#f87171',     // Red for low confidence
-					'highlight': '#60a5fa', // Blue for highlighting
-					'background': '#f8fafc' // Light background
+					'high': '#4ade80',       // Bright green — AI is very sure
+					'medium': '#fbbf24',     // Warm amber — AI is somewhat sure
+					'low': '#f87171',        // Soft red — AI is guessing
+					'highlight': '#38bdf8',  // Sky blue — selection highlight
+					'background': '#f0fdfa', // Warm teal tint
+					'teal': '#0d9488',       // Primary teal
+					'coral': '#f97316',      // Accent coral
+					'warm-gray': '#78716c',  // Warm gray for text
 				}
 			},
 			borderRadius: {
@@ -79,30 +85,34 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
 				},
 				'pulse-highlight': {
 					'0%, 100%': { transform: 'scale(1)' },
 					'50%': { transform: 'scale(1.05)' }
+				},
+				'bounce-in': {
+					'0%': { transform: 'scale(0.3)', opacity: '0' },
+					'50%': { transform: 'scale(1.05)' },
+					'70%': { transform: 'scale(0.9)' },
+					'100%': { transform: 'scale(1)', opacity: '1' }
+				},
+				'slide-up': {
+					'0%': { transform: 'translateY(20px)', opacity: '0' },
+					'100%': { transform: 'translateY(0)', opacity: '1' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'pulse-highlight': 'pulse-highlight 1s ease-in-out infinite'
+				'pulse-highlight': 'pulse-highlight 1s ease-in-out infinite',
+				'bounce-in': 'bounce-in 0.5s ease-out',
+				'slide-up': 'slide-up 0.4s ease-out'
 			}
 		}
 	},
