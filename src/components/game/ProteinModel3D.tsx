@@ -36,18 +36,18 @@ function Node({ position, color, isHighlighted, coordinates }: {
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      <sphereGeometry args={[0.2, 32, 32]} />
+      <sphereGeometry args={[0.22, 32, 32]} />
       <meshStandardMaterial 
         color={color}
         emissive={isHighlighted || hovered ? color : "#000000"}
         emissiveIntensity={isHighlighted ? 0.7 : hovered ? 0.4 : 0}
-        metalness={0.5}
-        roughness={0.2}
+        metalness={0.4}
+        roughness={0.3}
       />
       {(hovered || isHighlighted) && (
         <Html distanceFactor={10}>
-          <div className="bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs whitespace-nowrap">
-            {coordinates}
+          <div className="bg-foreground/80 text-white px-2.5 py-1.5 rounded-lg text-xs whitespace-nowrap shadow-lg backdrop-blur-sm">
+            Section {coordinates}
           </div>
         </Html>
       )}
@@ -74,10 +74,10 @@ function Connection({ start, end, color, isHighlighted }: {
   const points = curve.getPoints(50);
   const geometry = new THREE.BufferGeometry().setFromPoints(points);
   const material = new THREE.LineBasicMaterial({
-    color: isHighlighted ? "#60a5fa" : color,
+    color: isHighlighted ? "#38bdf8" : color,
     linewidth: isHighlighted ? 3 : 1,
     transparent: true,
-    opacity: isHighlighted ? 1 : 0.6
+    opacity: isHighlighted ? 1 : 0.5
   });
 
   return (
@@ -87,11 +87,12 @@ function Connection({ start, end, color, isHighlighted }: {
 
 function Scene({ paeGrid, selectedCell, gridSize }: ProteinModel3DProps) {
   const group = useRef<THREE.Group>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [userInteracted, setUserInteracted] = useState(false);
 
+  // Gentle auto-rotation when user hasn't interacted
   useFrame(() => {
-    if (group.current && isDragging) {
-      group.current.rotation.y *= 0.95;
+    if (group.current && !userInteracted && !selectedCell) {
+      group.current.rotation.y += 0.003;
     }
   });
 
@@ -121,39 +122,11 @@ function Scene({ paeGrid, selectedCell, gridSize }: ProteinModel3DProps) {
     return selectedCell.row === rowIndex || selectedCell.col === colIndex;
   };
 
-  // Generate axis markers with reduced frequency for clarity
-  const generateAxisMarkers = () => {
-    const markers = [];
-    const step = gridSize > 5 ? 2 : 1; // Show every second label for larger grids
-    
-    for (let i = 0; i < gridSize; i += step) {
-      // Only add axis labels at the edges of the grid
-      if (i === 0 || i === gridSize - 1 || i === Math.floor(gridSize / 2)) {
-        const pos = getPosition(i, 0);
-        markers.push(
-          <Html key={`row-${i}`} position={[pos[0] - 2, pos[1], pos[2]]} center>
-            <div className="text-xs font-bold px-1 py-0.5 bg-white bg-opacity-70 rounded">
-              {i + 1}
-            </div>
-          </Html>
-        );
-        
-        const colPos = getPosition(0, i);
-        markers.push(
-          <Html key={`col-${i}`} position={[colPos[0], colPos[1] - 2, colPos[2]]} center>
-            <div className="text-xs font-bold px-1 py-0.5 bg-white bg-opacity-70 rounded">
-              {i + 1}
-            </div>
-          </Html>
-        );
-      }
-    }
-    
-    return markers;
-  };
-
   return (
-    <group ref={group}>
+    <group 
+      ref={group}
+      onPointerDown={() => setUserInteracted(true)}
+    >
       {/* Nodes */}
       {paeGrid.map((row, rowIndex) =>
         row.map((cell, colIndex) => (
@@ -220,20 +193,17 @@ function Scene({ paeGrid, selectedCell, gridSize }: ProteinModel3DProps) {
           return null;
         })
       )}
-
-      {/* Axis labels */}
-      {generateAxisMarkers()}
     </group>
   );
 }
 
 export default function ProteinModel3D(props: ProteinModel3DProps) {
   return (
-    <div className="relative w-full h-[400px]">
+    <div className="relative w-full h-[400px] glass-card rounded-2xl overflow-hidden">
       <Canvas camera={{ position: [0, 0, 15], fov: 50 }}>
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} intensity={1} />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} />
+        <ambientLight intensity={0.6} />
+        <pointLight position={[10, 10, 10]} intensity={0.8} />
+        <pointLight position={[-10, -10, -10]} intensity={0.4} />
         <Scene {...props} />
         <OrbitControls
           enableZoom={true}
@@ -248,11 +218,11 @@ export default function ProteinModel3D(props: ProteinModel3DProps) {
           screenSpacePanning={true}
         />
       </Canvas>
-      <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white p-2 rounded-md text-xs pointer-events-none">
-        Drag to rotate • Scroll to zoom • Right-click to pan
+      <div className="absolute bottom-3 left-3 bg-foreground/60 text-white px-3 py-1.5 rounded-lg text-xs pointer-events-none backdrop-blur-sm">
+        🖱️ Drag to spin · Scroll to zoom
       </div>
-      <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white p-2 rounded-md text-xs pointer-events-none">
-        Hover over nodes to see coordinates
+      <div className="absolute top-3 left-3 bg-foreground/60 text-white px-3 py-1.5 rounded-lg text-xs pointer-events-none backdrop-blur-sm">
+        Each sphere = a section of the protein
       </div>
     </div>
   );
