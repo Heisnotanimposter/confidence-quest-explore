@@ -35,10 +35,11 @@ interface GameSettingsProviderProps {
 }
 
 export const GameSettingsProvider: React.FC<GameSettingsProviderProps> = ({ children }) => {
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>('advanced');
-  const [gameMode, setGameMode] = useState<GameMode>('explore');
-  const [audience, setAudience] = useState<AudienceType>('undergraduate');
-  const [gridSize, setGridSize] = useState<number>(7);
+  // Defaults changed: meet users where they are (friendly defaults)
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>('beginner');
+  const [gameMode, setGameMode] = useState<GameMode>('tutorial');
+  const [audience, setAudience] = useState<AudienceType>('elementary');
+  const [gridSize, setGridSize] = useState<number>(5);
 
   return (
     <GameSettingsContext.Provider
