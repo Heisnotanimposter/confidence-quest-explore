@@ -1,10 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ChevronRight, ChevronLeft, BookOpen, Target, HelpCircle } from "lucide-react";
+import { ChevronRight, ChevronLeft, Sparkles, Target, HelpCircle, Lightbulb } from "lucide-react";
 import { GameMode, DifficultyLevel, AudienceType } from "./GameSettingsContext";
 
 interface TutorialStep {
@@ -12,12 +12,12 @@ interface TutorialStep {
   title: string;
   content: string;
   analogy?: string;
+  funFact?: string;
   interaction?: {
     type: 'click' | 'select' | 'observe';
     target: string;
     description: string;
   };
-  visualAid?: string;
 }
 
 interface InteractiveTutorialProps {
@@ -42,59 +42,78 @@ const InteractiveTutorial = ({
     const baseSteps: TutorialStep[] = [
       {
         id: "introduction",
-        title: "Welcome to Protein Confidence Explorer!",
+        title: audience === 'elementary' ? "Welcome, Explorer! 🚀" : "Welcome to Confidence Quest!",
         content: audience === 'elementary' 
-          ? "Proteins are like tiny machines in our bodies. Scientists use computers to guess what they look like!"
+          ? "Proteins are like tiny machines inside your body. They help you breathe, think, grow, and fight off colds! Scientists use super-smart computers to figure out what these machines look like."
           : audience === 'highSchool'
-          ? "Proteins are complex molecules that perform essential functions in living organisms. Scientists use computational methods to predict their 3D structures."
-          : "Protein structure prediction uses computational algorithms to model the three-dimensional conformation of proteins from their amino acid sequences.",
+          ? "Proteins are complex molecules that perform essential functions in every living thing. Scientists now use AI (like AlphaFold) to predict their 3D shapes — but some predictions are better than others."
+          : "Protein structure prediction algorithms like AlphaFold2 model the 3D conformation of proteins from amino acid sequences. This game teaches you to interpret the confidence metrics of these predictions.",
         analogy: audience === 'elementary'
-          ? "🏗️ Think of proteins like LEGO buildings - scientists try to predict how all the pieces fit together!"
+          ? "🏗️ Think of proteins like LEGO buildings — a computer tries to guess how all the pieces fit together, just from looking at the pieces!"
           : audience === 'highSchool'
-          ? "🧩 Imagine trying to solve a 3D puzzle where you only know what pieces you have, but not how they connect."
-          : "🎯 Consider protein folding as an optimization problem in a vast conformational space with multiple energy minima."
+          ? "🧩 Imagine solving a 3D jigsaw puzzle where you only have the piece shapes, but no picture on the box. That's what AI does with proteins!"
+          : "🎯 Consider protein folding as navigating a vast energy landscape — AlphaFold uses attention mechanisms to predict residue-residue distances and angles.",
+        funFact: audience === 'elementary'
+          ? "💡 Fun fact: Your body has over 20,000 different types of proteins! Each one has a unique shape, like a snowflake."
+          : audience === 'highSchool'
+          ? "💡 Fun fact: AlphaFold predicted the structure of nearly every known protein — over 200 million structures!"
+          : "💡 The AlphaFold Protein Structure Database contains predicted structures for ~214 million proteins, covering nearly all cataloged proteins known to science."
       },
       {
         id: "pae_explanation",
-        title: "Understanding Confidence Maps",
+        title: audience === 'elementary' ? "Reading the Color Map 🎨" : "Understanding the Confidence Map",
         content: audience === 'elementary'
-          ? "The colorful grid shows how sure scientists are about different parts of the protein. Green means very sure, yellow means somewhat sure, and red means not very sure."
+          ? "See that colorful grid? Each colored square tells you how sure the computer is about that part of the protein. Green = very sure! Yellow = kinda sure. Red = just guessing."
           : audience === 'highSchool'
-          ? "The Predicted Aligned Error (PAE) map shows the confidence level for each part of the protein structure. Colors indicate prediction reliability."
-          : "PAE values represent the expected position error between residue pairs in the predicted structure, providing insights into local and global confidence.",
+          ? "The Confidence Map (scientists call it a 'PAE map') uses colors to show how reliable each part of the prediction is. Green areas are highly confident, yellow areas have some uncertainty, and red areas are less reliable."
+          : "PAE (Predicted Aligned Error) values represent the expected position error in Ångströms between residue pairs. Low PAE (green) indicates high confidence in the relative positions of residue pairs.",
         analogy: audience === 'elementary'
-          ? "🚦 It's like a traffic light system - green means 'go ahead and trust this', yellow means 'be careful', and red means 'stop and question this'!"
+          ? "🚦 It's like a traffic light! Green = go ahead and trust this. Yellow = maybe, be careful. Red = stop and question it!"
           : audience === 'highSchool'
-          ? "📊 Think of it as a weather forecast confidence map - some areas have highly reliable predictions, others are more uncertain."
-          : "🎨 Consider it as a probability density map where each pixel represents the certainty of spatial relationships between residue pairs."
+          ? "🌤️ It's like a weather forecast. \"90% chance of rain\" = green (very confident). \"50% chance\" = yellow (uncertain). \"We have no idea\" = red."
+          : "📊 Think of it as a distance error matrix — diagonal elements represent self-confidence, while off-diagonal elements capture the certainty of spatial relationships between distant residues.",
+        funFact: audience === 'elementary'
+          ? "💡 Fun fact: The computer can be 99% sure about some parts, and only 10% sure about other parts — all in the same protein!"
+          : "💡 Generally, structured regions (alpha helices, beta sheets) show high confidence, while flexible loops and disordered regions show lower confidence."
       },
       {
         id: "interaction_guide",
-        title: "How to Explore",
-        content: "Click on any colored cell in the PAE map to learn about that region. The 3D model will highlight the corresponding area.",
+        title: audience === 'elementary' ? "Your Turn! 👆" : "How to Explore",
+        content: audience === 'elementary'
+          ? "Now it's your turn! Click on any colored square in the map. A question will pop up — try to answer it using what you just learned about the colors!"
+          : "Click on any cell in the Confidence Map to learn about that region. The 3D model will highlight the corresponding area, and you'll get a question to test your understanding.",
         interaction: {
           type: 'click',
           target: 'pae-cell',
-          description: 'Try clicking on a green, yellow, or red cell to see what happens!'
-        }
+          description: audience === 'elementary' 
+            ? "Try clicking on a green square first — it should be the easiest to answer! 🟢"
+            : "Click on cells of different colors to see how the questions change based on confidence level."
+        },
+        funFact: audience === 'elementary'
+          ? "💡 Fun fact: Real scientists click on these maps every day to check if the computer did a good job predicting the protein shape!"
+          : "💡 Researchers use PAE maps to identify domain boundaries and assess the reliability of predicted protein-protein interactions."
       },
       {
         id: "interpretation",
-        title: "Reading the Results",
+        title: audience === 'elementary' ? "You're a Scientist Now! 🧑‍🔬" : "Interpreting Your Results",
         content: audience === 'elementary'
-          ? "When you click a cell, you'll get a question about how confident we should be. Use the colors to help you answer!"
+          ? "Great job! Every time you answer a question, you're learning what real scientists know. Keep exploring different proteins — each one has its own story!"
           : audience === 'highSchool'
-          ? "Questions will test your understanding of prediction confidence and structural biology concepts."
-          : "Questions will challenge your interpretation of PAE values in the context of protein structure validation and reliability assessment."
+          ? "As you answer questions, notice how different proteins have different confidence patterns. Well-folded proteins tend to be greener, while proteins with flexible regions show more red and yellow."
+          : "Pay attention to the patterns in the PAE map: block-diagonal structure indicates well-folded domains, off-diagonal low-confidence regions suggest uncertain inter-domain arrangements, and uniform low confidence may indicate intrinsically disordered regions.",
+        funFact: audience === 'elementary'
+          ? "💡 Fun fact: Some proteins are so important that when they break, they can cause diseases. Learning about confidence helps scientists design medicines!"
+          : "💡 Understanding prediction confidence is crucial for drug design — high-confidence regions are better targets for structure-based drug design."
       }
     ];
 
     if (difficulty === 'advanced') {
       baseSteps.push({
         id: "advanced_concepts",
-        title: "Advanced Interpretation",
-        content: "Advanced mode explores domain interactions, allosteric networks, and the relationship between prediction confidence and functional regions.",
-        analogy: "🔬 Like reading a complex scientific instrument - multiple layers of information reveal deeper insights about protein architecture."
+        title: "Advanced: Domain Analysis",
+        content: "Advanced mode lets you explore domain interactions, allosteric networks, and the relationship between prediction confidence and functional regions. Try switching between 'Full Protein', 'Specific Region', and 'Connection Points' views.",
+        analogy: "🔬 Like reading a satellite weather map with pressure systems — multiple layers of data reveal deeper patterns about the protein's architecture.",
+        funFact: "💡 AlphaFold-Multimer extends these concepts to protein complexes, where inter-chain PAE is particularly informative for assessing interaction confidence."
       });
     }
 
@@ -129,83 +148,95 @@ const InteractiveTutorial = ({
   const currentStepData = steps[activeStep];
 
   return (
-    <Card className="w-full max-w-4xl mx-auto mb-6 border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-      <CardHeader>
+    <Card className="w-full max-w-4xl mx-auto mb-6 glass-card border-0 shadow-lg animate-fade-in-up">
+      <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-blue-600" />
-            <CardTitle className="text-lg">Interactive Tutorial</CardTitle>
-            <Badge variant="outline">{audience} level</Badge>
+            <Sparkles className="h-5 w-5 text-game-teal" />
+            <CardTitle className="text-lg text-gradient">Guided Tour</CardTitle>
+            <Badge variant="secondary" className="text-xs">
+              {audience === 'elementary' ? '🧒 Easy mode' : audience === 'highSchool' ? '🧑‍🔬 Standard' : '🎓 Advanced'}
+            </Badge>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSkip}>
-            Skip Tutorial
+          <Button variant="ghost" size="sm" onClick={handleSkip} className="text-xs text-muted-foreground">
+            Skip →
           </Button>
         </div>
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm text-gray-600">
+        <div className="space-y-1.5 mt-2">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Step {activeStep + 1} of {steps.length}</span>
-            <span>{Math.round(progress)}% Complete</span>
+            <span>{Math.round(progress)}%</span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={progress} className="h-1.5" />
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-blue-800">
+          <h3 className="text-xl font-bold text-foreground/90">
             {currentStepData.title}
           </h3>
           
-          <p className="text-gray-700 leading-relaxed">
+          <p className="text-foreground/70 leading-relaxed">
             {currentStepData.content}
           </p>
 
           {currentStepData.analogy && (
-            <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+            <div className="p-4 bg-amber-50/80 border-l-3 border-amber-400 rounded-r-xl">
               <div className="flex items-start gap-2">
-                <HelpCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <HelpCircle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-medium text-yellow-800 mb-1">Visual Analogy:</p>
-                  <p className="text-yellow-700">{currentStepData.analogy}</p>
+                  <p className="font-medium text-amber-800 text-sm mb-1">Analogy</p>
+                  <p className="text-amber-700 text-sm">{currentStepData.analogy}</p>
                 </div>
               </div>
             </div>
           )}
 
-          {currentStepData.interaction && (
-            <div className="p-4 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
+          {currentStepData.funFact && (
+            <div className="p-4 bg-purple-50/80 border-l-3 border-purple-400 rounded-r-xl">
               <div className="flex items-start gap-2">
-                <Target className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                <Lightbulb className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                <p className="text-purple-700 text-sm">{currentStepData.funFact}</p>
+              </div>
+            </div>
+          )}
+
+          {currentStepData.interaction && (
+            <div className="p-4 bg-teal-50/80 border-l-3 border-game-teal rounded-r-xl">
+              <div className="flex items-start gap-2">
+                <Target className="h-4 w-4 text-game-teal mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-medium text-green-800 mb-1">Try This:</p>
-                  <p className="text-green-700">{currentStepData.interaction.description}</p>
+                  <p className="font-medium text-teal-800 text-sm mb-1">Try This!</p>
+                  <p className="text-teal-700 text-sm">{currentStepData.interaction.description}</p>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        <div className="flex justify-between pt-4">
+        <div className="flex justify-between items-center pt-4">
           <Button
             variant="outline"
             onClick={handlePrevious}
             disabled={activeStep === 0}
-            className="flex items-center gap-2"
+            size="sm"
+            className="gap-1"
           >
             <ChevronLeft className="h-4 w-4" />
-            Previous
+            Back
           </Button>
 
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {steps.map((_, index) => (
               <div
                 key={index}
-                className={`w-2 h-2 rounded-full ${
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
                   index === activeStep
-                    ? 'bg-blue-600'
+                    ? 'bg-game-teal w-6'
                     : completedSteps.includes(index)
-                    ? 'bg-green-500'
-                    : 'bg-gray-300'
+                    ? 'bg-game-high'
+                    : 'bg-gray-200'
                 }`}
               />
             ))}
@@ -213,9 +244,10 @@ const InteractiveTutorial = ({
 
           <Button
             onClick={handleNext}
-            className="flex items-center gap-2"
+            size="sm"
+            className="gap-1"
           >
-            {activeStep === steps.length - 1 ? 'Complete Tutorial' : 'Next'}
+            {activeStep === steps.length - 1 ? "Let's Go!" : 'Next'}
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
